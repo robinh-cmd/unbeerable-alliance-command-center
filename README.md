@@ -7,3 +7,5 @@ Connect this repository to Netlify. Publish directory: `.` and no build command 
 
 ## Backend
 The shared alliance roster uses Supabase. The browser uses a publishable key only; never commit a secret/service-role key.
+
+Deployment refresh: 2026-09-29
