@@ -34,3 +34,5 @@
 @media(max-width:650px){
   .versus-team-row{grid-template-columns:42px minmax(0,1fr) minmax(0,1fr)}
 }
+
+.versus-history{display:grid;gap:9px}.versus-history-item{border:1px solid var(--border);border-radius:10px;background:#10141d;padding:10px}.versus-history-item summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center}.versus-history-item summary span{font-size:10px;color:#8993a4}
