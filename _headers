@@ -1,0 +1,12 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdn.sheetjs.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://dznwbouaslgmdzfjglcm.supabase.co wss://dznwbouaslgmdzfjglcm.supabase.co; img-src 'self' data:; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'
+
+/sw.js
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
