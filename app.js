@@ -2,7 +2,7 @@ const navItems=document.querySelectorAll('.nav-item'),pages=document.querySelect
 
 const VERSUS_KEY='unbeerable_versus_duel_v1';
 const VERSUS_WEEKS=4;
-function defaultVersus(){return{teams:Array.from({length:16},(_,i)=>({name:'Alliance '+(i+1),power:'',nationality:''})),results:{}}}
+function defaultVersus(){const names=["HECT","edeN","FML","IMI","WYZ","MKT","AdHD","8EER","pc6","UPt","xBoM","DxL","7IB","B52","tMp","KTI"];return{teams:names.map(name=>({name,power:'',nationality:''})),results:{}}}
 function loadVersus(){try{const x=JSON.parse(localStorage.getItem(VERSUS_KEY)||'null');if(x&&x.teams?.length===16)return x}catch{}return defaultVersus()}
 let versusData=loadVersus();
 function saveVersus(){localStorage.setItem(VERSUS_KEY,JSON.stringify(versusData))}
