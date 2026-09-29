@@ -31,19 +31,11 @@
 <section class="page" id="transfer"><div class="section-intro"><div><span class="eyebrow accent">ROSTER MANAGEMENT</span><h2>Transfer Planning</h2><p>Transfer planning workspace.</p></div></div></section>
 <section class="page" id="todays-schedule"><div class="section-intro"><div><span class="eyebrow accent">ALLIANCE PLANNING</span><h2>Today’s Schedule</h2><p>Weekly planning, reminders, and secret-task tracking for the alliance.</p></div></div>
 <div class="schedule-sections">
-<article class="panel"><div class="panel-head"><div><span class="eyebrow">CALENDAR</span><h3>Weekly Calendar</h3></div><span class="pill">4-week rotation</span></div>
-<p class="muted">Marshal repeats every 2 days and Zombie Siege every 3 days. Canyon Storm is Thursday and Desert Storm is Friday. Overlapping events remain on the same day.</p>
-<div class="monthly-rotation"><table class="rotation-table"><thead><tr><th>Day</th><th>Week 1</th><th>Week 2</th><th>Week 3</th><th>Week 4</th></tr></thead><tbody>
-<tr><th>Monday</th><td>🧟 Zombie Siege</td><td>🪖 Marshal</td><td>🆓 Free time</td><td>🧟 Zombie Siege<br>🪖 Marshal</td></tr>
-<tr><th>Tuesday</th><td>🪖 Marshal</td><td>🆓 Free time</td><td>🧟 Zombie Siege<br>🪖 Marshal</td><td>🆓 Free time</td></tr>
-<tr><th>Wednesday</th><td>🆓 Free time</td><td>🧟 Zombie Siege<br>🪖 Marshal</td><td>🆓 Free time</td><td>🪖 Marshal</td></tr>
-<tr><th>Thursday</th><td>🧟 Zombie Siege<br>🪖 Marshal<br>🏜️ Canyon Storm</td><td>🏜️ Canyon Storm</td><td>🪖 Marshal<br>🏜️ Canyon Storm</td><td>🧟 Zombie Siege<br>🏜️ Canyon Storm</td></tr>
-<tr><th>Friday</th><td>🌪️ Desert Storm</td><td>🪖 Marshal<br>🌪️ Desert Storm</td><td>🧟 Zombie Siege<br>🌪️ Desert Storm</td><td>🪖 Marshal<br>🌪️ Desert Storm</td></tr>
-<tr><th>Saturday</th><td>🪖 Marshal</td><td>🧟 Zombie Siege</td><td>🪖 Marshal</td><td>🆓 Free time</td></tr>
-<tr><th>Sunday</th><td>🧟 Zombie Siege</td><td>🪖 Marshal</td><td>🆓 Free time</td><td>🧟 Zombie Siege<br>🪖 Marshal</td></tr>
-</tbody></table></div>
-<div class="rotation-totals"><div><strong>14</strong><span>🪖 Marshal</span></div><div><strong>10</strong><span>🧟 Zombie Siege</span></div><div><strong>4</strong><span>🏜️ Canyon Storm</span></div><div><strong>4</strong><span>🌪️ Desert Storm</span></div><div><strong>8</strong><span>🆓 Free days</span></div></div>
-<p class="muted small rotation-note">Marshal and Zombie Siege align every 6 days: Thu W1 → Wed W2 → Tue W3 → Mon W4 → Sun W4.</p>
+<article class="panel"><div class="panel-head"><div><span class="eyebrow">CALENDAR</span><h3>Weekly Calendar</h3></div><div class="member-actions"><span class="pill" id="rotationBlockLabel">4-week rotation</span><button class="secondary" id="nextRotationBtn">Generate next 4 weeks</button></div></div>
+<p class="muted">Marshal repeats every 2 days and Zombie Siege every 3 days. Canyon Storm is Thursday and Desert Storm is Friday. The next 4-week block continues from the previous block without resetting recurring-event intervals.</p>
+<div class="monthly-rotation"><table class="rotation-table"><thead><tr><th>Day</th><th>Week 1</th><th>Week 2</th><th>Week 3</th><th>Week 4</th></tr></thead><tbody id="rotationCalendarBody"></tbody></table></div>
+<div class="rotation-totals" id="rotationTotals"></div>
+<p class="muted small rotation-note" id="rotationRange"></p>
 </article>
 <article class="panel"><div class="panel-head"><div><span class="eyebrow">REMINDERS</span><h3>Reminders</h3></div><span class="pill" id="reminderDay">Today</span></div>
 <div class="reminder-list">
