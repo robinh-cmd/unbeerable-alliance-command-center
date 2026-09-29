@@ -1,0 +1,9 @@
+{
+  "name": "8EER: UnBEERable Alliance Command Center",
+  "short_name": "8EER",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0c12",
+  "theme_color": "#0a0c12",
+  "icons": []
+}
