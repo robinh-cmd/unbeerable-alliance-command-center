@@ -5,6 +5,14 @@ const VERSUS_WEEKS=4;
 function defaultVersus(){const names=["HECT","edeN","FML","IMI","WYZ","MKT","AdHD","8EER","pc6","UPt","xBoM","DxL","7IB","B52","tMp","KTI"];return{teams:names.map(name=>({name,power:'',nationality:''})),results:{}}}
 function loadVersus(){try{const x=JSON.parse(localStorage.getItem(VERSUS_KEY)||'null');if(x&&x.teams?.length===16)return x}catch{}return defaultVersus()}
 let versusData=loadVersus();
+(function migrateVersusPlaceholders(){
+  const names=['HECT','edeN','FML','IMI','WYZ','MKT','AdHD','8EER','pc6','UPt','xBoM','DxL','7IB','B52','tMp','KTI'];
+  const untouched=versusData.teams?.length===16&&versusData.teams.every((t,i)=>t.name==='Alliance '+(i+1))&&Object.keys(versusData.results||{}).length===0;
+  if(untouched){
+    versusData.teams=names.map((name,i)=>({name,power:versusData.teams[i]?.power||'',nationality:versusData.teams[i]?.nationality||''}));
+    localStorage.setItem(VERSUS_KEY,JSON.stringify(versusData));
+  }
+})();
 function saveVersus(){localStorage.setItem(VERSUS_KEY,JSON.stringify(versusData))}
 function resultFor(teamIndex,week){for(const [key,r] of Object.entries(versusData.results)){const [w,m]=key.split('-').map(Number);if(w!==week)continue;const p=versusPairings(week)[m];if(!p)continue;if(p.a===teamIndex)return r;if(p.b===teamIndex)return r==='W'?'L':r==='L'?'W':''}return''}
 function pathBefore(teamIndex,week){let p='';for(let w=1;w<week;w++)p+=resultFor(teamIndex,w);return p}
