@@ -1,5 +1,36 @@
 const navItems=document.querySelectorAll('.nav-item'),pages=document.querySelectorAll('.page'),title=document.getElementById('pageTitle'),sidebar=document.getElementById('sidebar');
-const titles={dashboard:'Alliance Dashboard','season-war':'Season War',members:'Members','todays-schedule':'Today’s Schedule',vs:'VS','desert-storm':'Desert Storm','canyon-storm':'Canyon Storm',transfer:'Transfer Planning',train:'Train',settings:'Settings'};
+
+const VERSUS_KEY='unbeerable_versus_duel_v1';
+const VERSUS_WEEKS=4;
+function defaultVersus(){return{teams:Array.from({length:16},(_,i)=>({name:'Alliance '+(i+1),power:''})),results:{}}}
+function loadVersus(){try{const x=JSON.parse(localStorage.getItem(VERSUS_KEY)||'null');if(x&&x.teams?.length===16)return x}catch{}return defaultVersus()}
+let versusData=loadVersus();
+function saveVersus(){localStorage.setItem(VERSUS_KEY,JSON.stringify(versusData))}
+function resultFor(teamIndex,week){for(const [key,r] of Object.entries(versusData.results)){const [w,m]=key.split('-').map(Number);if(w!==week)continue;const p=versusPairings(week)[m];if(!p)continue;if(p.a===teamIndex)return r;if(p.b===teamIndex)return r==='W'?'L':r==='L'?'W':''}return''}
+function pathBefore(teamIndex,week){let p='';for(let w=1;w<week;w++)p+=resultFor(teamIndex,w);return p}
+function fullPath(teamIndex){let p='';for(let w=1;w<=VERSUS_WEEKS;w++){const r=resultFor(teamIndex,w);if(!r)break;p+=r}return p}
+function pathStrength(path){let n=0;for(const c of path)n=n*2+(c==='W'?1:0);return n}
+function versusPairings(week){
+ if(week===1)return Array.from({length:8},(_,i)=>({a:i*2,b:i*2+1,path:''}));
+ const groups={};for(let i=0;i<16;i++){const p=pathBefore(i,week);if(p.length!==week-1)continue;(groups[p]??=[]).push(i)}
+ return Object.keys(groups).sort((a,b)=>pathStrength(b)-pathStrength(a)||a.localeCompare(b)).flatMap(path=>{
+   const g=groups[path],out=[];for(let i=0;i+1<g.length;i+=2)out.push({a:g[i],b:g[i+1],path});return out
+ })
+}
+function versusRecord(i){const p=fullPath(i);return{w:[...p].filter(x=>x==='W').length,l:[...p].filter(x=>x==='L').length,path:p}}
+function renderVersus(){
+ const list=document.getElementById('versusTeamList'),weeks=document.getElementById('versusWeeks'),stand=document.getElementById('versusStandingsBody');if(!list||!weeks||!stand)return;
+ list.innerHTML=versusData.teams.map((t,i)=>'<div class="versus-team-row"><span class="versus-seed">#'+(i+1)+'</span><input data-vteam="'+i+'" data-field="name" value="'+esc(t.name)+'" placeholder="Alliance name"><input data-vteam="'+i+'" data-field="power" value="'+esc(t.power)+'" placeholder="Power"></div>').join('');
+ list.querySelectorAll('input').forEach(inp=>inp.onchange=()=>{const i=Number(inp.dataset.vteam),field=inp.dataset.field;versusData.teams[i][field]=inp.value.trim();saveVersus();renderVersus()});
+ weeks.innerHTML=Array.from({length:4},(_,wi)=>{const week=wi+1,pairs=versusPairings(week);return '<article class="panel versus-week"><div class="panel-head"><div><span class="eyebrow">WEEK '+week+'</span><h3>'+(week===1?'Opening Pairings':'Path Pairings')+'</h3></div><span class="pill">'+(week===1?'Original order':'Exact '+('W/L '.repeat(week-1)).trim()+' path')+'</span></div><div class="versus-matches">'+(pairs.length?pairs.map((p,mi)=>versusMatchHtml(week,mi,p)).join(''):'<p class="muted">Complete Week '+(week-1)+' results to generate these pairings.</p>')+'</div></article>'}).join('');
+ document.querySelectorAll('.versus-result').forEach(sel=>sel.onchange=()=>{const key=sel.dataset.key;if(sel.value)versusData.results[key]=sel.value;else delete versusData.results[key];for(const k of Object.keys(versusData.results)){const w=Number(k.split('-')[0]);if(w>Number(key.split('-')[0]))delete versusData.results[k]}saveVersus();renderVersus()});
+ const rows=versusData.teams.map((t,i)=>({i,t,...versusRecord(i)})).sort((a,b)=>b.w-a.w||a.i-b.i);
+ stand.innerHTML=rows.map((r,rank)=>'<tr><td>'+(rank+1)+'</td><td><strong>'+esc(r.t.name)+'</strong></td><td>'+esc(r.t.power||'—')+'</td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.w+'-'+r.l+'</td><td><span class="path-badge">'+esc(r.path||'—')+'</span></td></tr>').join('')
+}
+function versusMatchHtml(week,mi,p){const a=versusData.teams[p.a],b=versusData.teams[p.b],key=week+'-'+mi,r=versusData.results[key]||'',br=r==='W'?'L':r==='L'?'W':'',winner=r?(r==='W'?a.name:b.name):'—',loser=r?(r==='W'?b.name:a.name):'—';return '<div class="versus-match"><div class="versus-match-head"><strong>Match '+(mi+1)+'</strong><span class="path-badge">'+(p.path||'START')+'</span></div><div class="versus-side"><span>A</span><strong>'+esc(a.name)+'</strong><small>'+esc(a.power||'Power —')+'</small><select class="versus-result" data-key="'+key+'"><option value="">Result</option><option value="W" '+(r==='W'?'selected':'')+'>W</option><option value="L" '+(r==='L'?'selected':'')+'>L</option></select></div><div class="versus-side"><span>B</span><strong>'+esc(b.name)+'</strong><small>'+esc(b.power||'Power —')+'</small><b class="auto-result">'+(br||'—')+'</b></div><div class="versus-outcome"><span>Winner: <strong>'+esc(winner)+'</strong></span><span>Loser: <strong>'+esc(loser)+'</strong></span></div></div>'}
+function resetVersus(){if(!confirm('Reset all Versus Duel teams, power values, and results?'))return;versusData=defaultVersus();saveVersus();renderVersus()}
+
+const titles={dashboard:'Alliance Dashboard','season-war':'Season War',members:'Members','todays-schedule':'Today’s Schedule',vs:'Versus Duel','desert-storm':'Desert Storm','canyon-storm':'Canyon Storm',transfer:'Transfer Planning',train:'Train',settings:'Settings'};
 function showPage(id){pages.forEach(p=>p.classList.toggle('active',p.id===id));navItems.forEach(n=>n.classList.toggle('active',n.dataset.page===id));title.textContent=titles[id]||id;sidebar.classList.remove('open')}
 navItems.forEach(n=>n.onclick=()=>showPage(n.dataset.page));document.getElementById('menuBtn').onclick=()=>sidebar.classList.toggle('open');
 const STORAGE_KEY='unbeerable_members_v13';let members=loadMembers(),editingIndex=null,importRows=[],workbook=null;
@@ -7,7 +38,8 @@ function loadMembers(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY))
 function saveLocal(){localStorage.setItem(STORAGE_KEY,JSON.stringify(members))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function updateCount(){const n=members.length;document.getElementById('dashboardMemberCount').textContent=n+'/100';document.getElementById('dashboardMemberSlots').textContent=Math.max(0,100-n)+' open position'+(100-n===1?'':'s')}
-function renderMembers(){const q=(document.getElementById('memberSearch').value||'').trim().toLowerCase();const rows=members.map((name,index)=>({name,index})).filter(x=>x.name.toLowerCase().includes(q));document.querySelector('#memberTable tbody').innerHTML=rows.map(x=>`<tr><td><strong>${esc(x.name)}</strong></td><td class="row-actions"><button class="mini-btn edit-member" data-index="${x.index}">Edit</button><button class="mini-btn danger delete-member" data-index="${x.index}">Delete</button></td></tr>`).join('');document.getElementById('memberCount').textContent=members.length+' member'+(members.length===1?'':'s');document.getElementById('visibleMemberCount').textContent=rows.length+' shown';document.getElementById('memberEmptyState').hidden=rows.length!==0;updateCount();document.querySelectorAll('.edit-member').forEach(b=>b.onclick=()=>openMember(Number(b.dataset.index)));document.querySelectorAll('.delete-member').forEach(b=>b.onclick=async()=>{const i=Number(b.dataset.index);if(confirm('Delete '+members[i]+' from the roster?')){members.splice(i,1);saveLocal();renderMembers();await replaceCloudRoster()}})}
+function renderVersus();
+renderMembers(){const q=(document.getElementById('memberSearch').value||'').trim().toLowerCase();const rows=members.map((name,index)=>({name,index})).filter(x=>x.name.toLowerCase().includes(q));document.querySelector('#memberTable tbody').innerHTML=rows.map(x=>`<tr><td><strong>${esc(x.name)}</strong></td><td class="row-actions"><button class="mini-btn edit-member" data-index="${x.index}">Edit</button><button class="mini-btn danger delete-member" data-index="${x.index}">Delete</button></td></tr>`).join('');document.getElementById('memberCount').textContent=members.length+' member'+(members.length===1?'':'s');document.getElementById('visibleMemberCount').textContent=rows.length+' shown';document.getElementById('memberEmptyState').hidden=rows.length!==0;updateCount();document.querySelectorAll('.edit-member').forEach(b=>b.onclick=()=>openMember(Number(b.dataset.index)));document.querySelectorAll('.delete-member').forEach(b=>b.onclick=async()=>{const i=Number(b.dataset.index);if(confirm('Delete '+members[i]+' from the roster?')){members.splice(i,1);saveLocal();renderMembers();await replaceCloudRoster()}})}
 function openMember(i=null){editingIndex=i;document.getElementById('memberModalTitle').textContent=i===null?'Add member':'Edit member';document.getElementById('memberNameInput').value=i===null?'':members[i];document.getElementById('memberModal').hidden=false}
 function closeMember(){document.getElementById('memberModal').hidden=true;editingIndex=null}
 document.getElementById('addMemberBtn').onclick=()=>openMember();document.getElementById('closeMemberModal').onclick=closeMember;document.getElementById('cancelMemberBtn').onclick=closeMember;
@@ -52,6 +84,7 @@ async function generateTrainWeek(){if(!cloudReady)return alert('Connect to the s
 document.querySelectorAll('.train-tab').forEach(b=>b.onclick=()=>{trainTab=b.dataset.trainTab;document.querySelectorAll('.train-tab').forEach(x=>x.classList.toggle('active',x===b));renderTrain()});document.getElementById('generateTrainWeekBtn').onclick=generateTrainWeek;document.getElementById('copyTrainEmailBtn').onclick=copyTrainEmail;document.getElementById('undoTrainWeekBtn').onclick=undoTrainWeek;document.getElementById('trainRefreshBtn').onclick=loadTrainData;
 
 document.getElementById('generateDailyEmailBtn').onclick=generateDailyEmail;document.getElementById('undoDailyEmailBtn').onclick=undoDailyEmail;document.getElementById('copyDailyEmailBtn').onclick=copyDailyEmail;
+document.getElementById('resetVersusBtn').onclick=resetVersus;
 document.getElementById('nextRotationBtn').onclick=nextRotationBlock;document.getElementById('undoRotationBtn').onclick=undoRotationBlock;
 document.getElementById('vsStrategyToggle').onclick=()=>{const x=document.getElementById('vsStrategyOptions');x.hidden=!x.hidden};document.querySelectorAll('.vs-choice').forEach(b=>b.onclick=()=>{localStorage.setItem('unbeerable_vs_strategy',b.dataset.vsStrategy);renderReminders()});
 document.getElementById('pullCloudBtn').onclick=pullCloudRoster;document.getElementById('resetRosterBtn').onclick=async()=>{if(confirm('Clear the shared member roster?')){members=[];saveLocal();renderMembers();await replaceCloudRoster()}};
