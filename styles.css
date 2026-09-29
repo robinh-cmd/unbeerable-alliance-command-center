@@ -17,3 +17,20 @@
 @media(max-width:1100px){.versus-grid{grid-template-columns:1fr}.versus-matches{grid-template-columns:1fr}}@media(max-width:650px){.versus-team-row{grid-template-columns:36px minmax(0,1fr) minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}.versus-team-row .versus-seed{grid-column:1;grid-row:1;align-self:center}.versus-team-row input[data-field="name"]{grid-column:2 / -1;grid-row:1}.versus-team-row input[data-field="power"]{grid-column:2;grid-row:2}.versus-team-row input[data-field="nationality"]{grid-column:3;grid-row:2}.versus-side{grid-template-columns:22px 1fr 62px}.versus-side small{display:none}}
 
 .versus-import-actions{margin:12px 0}.versus-picture-review{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;background:#0e121a}.versus-picture-review img{display:block;max-width:100%;max-height:320px;margin:0 auto 10px;border-radius:8px}.versus-picture-review textarea{min-height:180px;margin:10px 0}
+/* Versus team editor: stable two-row layout at every viewport */
+.versus-team-row{
+  display:grid;
+  grid-template-columns:64px minmax(0,1fr) minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid var(--border);
+}
+.versus-team-row .versus-seed{grid-column:1;grid-row:1;align-self:center}
+.versus-team-row input[data-field="name"]{grid-column:2 / -1;grid-row:1}
+.versus-team-row input[data-field="power"]{grid-column:2;grid-row:2}
+.versus-team-row input[data-field="nationality"]{grid-column:3;grid-row:2}
+.versus-team-row input{box-sizing:border-box;min-width:0;width:100%}
+@media(max-width:650px){
+  .versus-team-row{grid-template-columns:42px minmax(0,1fr) minmax(0,1fr)}
+}
