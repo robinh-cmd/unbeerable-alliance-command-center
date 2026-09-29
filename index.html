@@ -32,7 +32,13 @@
 <section class="page" id="todays-schedule"><div class="section-intro"><div><span class="eyebrow accent">ALLIANCE PLANNING</span><h2>Today’s Schedule</h2><p>Weekly planning, reminders, and secret-task tracking for the alliance.</p></div></div>
 <div class="schedule-sections">
 <article class="panel"><div class="panel-head"><div><span class="eyebrow">CALENDAR</span><h3>Weekly Calendar</h3></div></div><div class="train-empty">Weekly calendar entries will appear here.</div></article>
-<article class="panel"><div class="panel-head"><div><span class="eyebrow">REMINDERS</span><h3>Reminders</h3></div></div><div class="train-empty">Alliance reminders will appear here.</div></article>
+<article class="panel"><div class="panel-head"><div><span class="eyebrow">REMINDERS</span><h3>Reminders</h3></div><span class="pill" id="reminderDay">Today</span></div>
+<div class="reminder-list">
+<div class="reminder-card" id="desertReminder"><div><strong>Desert Storm</strong><span>Monday – Wednesday</span></div><p>Reminder to sign up to Desert Storm</p></div>
+<div class="reminder-card" id="canyonReminder"><div><strong>Canyon Storm</strong><span>Saturday – Tuesday</span></div><p>Reminder to sign up to Canyon Storm</p></div>
+</div>
+<div class="vs-addon"><button class="secondary vs-addon-toggle" id="vsStrategyToggle">VS Strategy <span>Optional add-on</span></button><div id="vsStrategyOptions" class="vs-strategy-options" hidden><p class="muted">Choose the VS strategy:</p><div class="member-actions"><button class="secondary vs-choice" data-vs-strategy="push">Push in VS</button><button class="secondary vs-choice" data-vs-strategy="save">Save in VS</button></div><div id="vsStrategyStatus" class="vs-strategy-status">No VS strategy selected.</div></div></div>
+</article>
 <article class="panel"><div class="panel-head"><div><span class="eyebrow">SECRET TASKS</span><h3>Shiny Secret Tasks</h3></div><span class="pill">July–December 2026</span></div>
 <p class="muted">Shiny Tasks 6-Month Rotation Schedule · July–December 2026 · Servers 677–804. Each date is shown in its assigned Group A, B, or C rotation color.</p>
 <div class="shiny-calendar" id="shinyCalendar"></div>
