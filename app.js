@@ -1,5 +1,5 @@
 const navItems=document.querySelectorAll('.nav-item'),pages=document.querySelectorAll('.page'),title=document.getElementById('pageTitle'),sidebar=document.getElementById('sidebar');
-const titles={dashboard:'Alliance Dashboard','season-war':'Season War',members:'Members',vs:'VS','desert-storm':'Desert Storm','canyon-storm':'Canyon Storm',transfer:'Transfer Planning',train:'Train',settings:'Settings'};
+const titles={dashboard:'Alliance Dashboard','season-war':'Season War',members:'Members','todays-schedule':'Today’s Schedule',vs:'VS','desert-storm':'Desert Storm','canyon-storm':'Canyon Storm',transfer:'Transfer Planning',train:'Train',settings:'Settings'};
 function showPage(id){pages.forEach(p=>p.classList.toggle('active',p.id===id));navItems.forEach(n=>n.classList.toggle('active',n.dataset.page===id));title.textContent=titles[id]||id;sidebar.classList.remove('open')}
 navItems.forEach(n=>n.onclick=()=>showPage(n.dataset.page));document.getElementById('menuBtn').onclick=()=>sidebar.classList.toggle('open');
 const STORAGE_KEY='unbeerable_members_v13';let members=loadMembers(),editingIndex=null,importRows=[],workbook=null;
