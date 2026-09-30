@@ -126,3 +126,5 @@
   #versus .metric-grid{grid-template-columns:1fr}
   #versus .hero,#versus .section-intro{width:100%}
 }
+
+.member-toolbar select{background:#0e121a;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;min-width:230px}@media(max-width:560px){.member-toolbar{display:grid;grid-template-columns:1fr auto;gap:8px}.member-toolbar input{grid-column:1/-1}.member-toolbar select{min-width:0;width:100%}}
