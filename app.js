@@ -244,8 +244,8 @@ function desertMember(name){return members.find(m=>m.name.toLocaleLowerCase()===
 function desertSlot(kind,i){
  const current=desertStormData[desertStormTeam][kind][i],used=desertSelected(desertStormTeam,kind,i);
  const opts=members.slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(m=>!used.has(m.name.toLocaleLowerCase())||m.name===current).map(m=>'<option value="'+esc(m.name)+'" '+(m.name===current?'selected':'')+'>'+esc(m.name)+'</option>').join('');
- const m=desertMember(current),meta=m?[m.power&&'THP '+m.power,m.t1&&'T1 '+m.t1,m.type].filter(Boolean).join(' · '):'Select alliance member';
- return '<div class="desert-slot"><span>#'+(i+1)+'</span><div><select data-ds-kind="'+kind+'" data-ds-index="'+i+'"><option value="">— Empty slot —</option>'+opts+'</select><small>'+esc(meta)+'</small></div></div>'
+ const m=desertMember(current),thp=m?.power||'—',meta=m?[m.t1&&'T1 '+m.t1,m.type].filter(Boolean).join(' · '):'';
+ return '<div class="desert-slot"><span>#'+(i+1)+'</span><div class="desert-slot-member"><select data-ds-kind="'+kind+'" data-ds-index="'+i+'"><option value="">— Empty slot —</option>'+opts+'</select>'+(meta?'<small>'+esc(meta)+'</small>':'')+'</div><div class="desert-slot-thp"><small>THP</small><strong>'+esc(thp)+'</strong></div></div>'
 }
 function renderDesertStorm(){
  const label=desertStormTeam==='a'?'Team A':'Team B',d=desertStormData[desertStormTeam];
