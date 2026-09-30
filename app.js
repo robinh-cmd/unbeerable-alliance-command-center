@@ -41,6 +41,23 @@ function renderDashboardVersus(){
  const oi=pair.a===idx?pair.b:pair.a,me=versusData.teams[idx],opp=versusData.teams[oi],rec=versusRecord(idx),orec=versusRecord(oi),done=!!resultFor(idx,week);
  el.innerHTML='<div class="versus-dashboard-match"><div class="versus-dashboard-team home"><small>YOUR ALLIANCE</small><strong>8EER</strong><span>'+esc(me.power||'Power —')+'</span><div class="versus-dashboard-record">'+rec.w+'-'+rec.l+' <b>'+esc(rec.path||'Opening')+'</b></div></div><div class="versus-dashboard-vs"><span>VS</span><small>'+(done?'Week complete':'Current matchup')+'</small></div><div class="versus-dashboard-team"><small>OPPONENT</small><strong>'+esc(opp.name||('Alliance '+(oi+1)))+'</strong><span>'+esc(opp.power||'Power —')+'</span><div class="versus-dashboard-record">'+orec.w+'-'+orec.l+' <b>'+esc(orec.path||'Opening')+'</b></div><em>'+esc(opp.nationality||'Region —')+'</em></div></div>'
 }
+function parseVersusPower(v){
+ const raw=String(v||'').trim().toUpperCase().replace(/\s/g,'');if(!raw)return 0;
+ const m=raw.match(/^([+-]?[0-9]+(?:[.,][0-9]+)?)([KMBT])?$/);
+ if(m){let n=Number(m[1].replace(',','.'));if(!Number.isFinite(n))return 0;const mult={K:1e3,M:1e6,B:1e9,T:1e12};return n*(mult[m[2]]||1)}
+ const n=Number(raw.replace(/,/g,'').replace(/[^0-9.+-]/g,''));return Number.isFinite(n)?n:0
+}
+function compactVersusPower(n){return n>=1e12?(n/1e12).toFixed(2)+'T':n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(Math.round(n))}
+function renderVersusPrediction(){
+ const root=document.getElementById('versusPrediction'),badge=document.getElementById('versusPredictionWeek');if(!root||!badge)return;
+ const idx=versusData.teams.findIndex(t=>(t.name||'').trim().toUpperCase()==='8EER');if(idx<0){badge.textContent='Week —';root.innerHTML='<div class="train-empty">8EER is not in the active tournament.</div>';return}
+ let week=1;for(let w=1;w<=VERSUS_WEEKS;w++){if(!resultFor(idx,w)){week=w;break}week=Math.min(w+1,VERSUS_WEEKS)}
+ const pair=versusPairings(week).find(p=>p.a===idx||p.b===idx);badge.textContent='Week '+week;if(!pair){root.innerHTML='<div class="train-empty">Complete the previous week to generate 8EER’s next opponent.</div>';return}
+ const oi=pair.a===idx?pair.b:pair.a,me=versusData.teams[idx],opp=versusData.teams[oi],mp=parseVersusPower(me.power),op=parseVersusPower(opp.power);
+ if(!mp||!op){root.innerHTML='<div class="train-empty">Enter Power for both 8EER and '+esc(opp.name)+' to calculate the prediction.</div>';return}
+ const favorite=mp===op?'Even matchup':mp>op?'8EER':opp.name,diff=Math.abs(mp-op),pct=Math.max(mp,op)?diff/Math.max(mp,op)*100:0,total=mp+op,ms=mp/total*100,os=op/total*100;
+ root.innerHTML='<div class="versus-prediction-head"><div><small>8EER</small><strong>'+compactVersusPower(mp)+'</strong></div><div class="versus-prediction-call"><span>POWER-BASED FAVORITE</span><strong>'+esc(favorite)+'</strong><small>'+(favorite==='Even matchup'?'Equal entered power':compactVersusPower(diff)+' advantage · '+pct.toFixed(1)+'% stronger by entered power')+'</small></div><div><small>'+esc(opp.name)+'</small><strong>'+compactVersusPower(op)+'</strong></div></div><div class="versus-power-bar"><span style="width:'+ms.toFixed(2)+'%"></span><i style="width:'+os.toFixed(2)+'%"></i></div><div class="versus-power-shares"><span>8EER '+ms.toFixed(1)+'%</span><span>'+esc(opp.name)+' '+os.toFixed(1)+'%</span></div><p class="muted small">Prediction uses entered total alliance power only. Participation, saved resources, activity, and strategy can change the actual result.</p>'
+}
 function renderVersus(){
  const list=document.getElementById('versusTeamList'),weeks=document.getElementById('versusWeeks'),stand=document.getElementById('versusStandingsBody');if(!list||!weeks||!stand)return;
  list.innerHTML=versusData.teams.map((t,i)=>'<div class="versus-team-row"><span class="versus-seed">#'+(i+1)+'</span><input data-vteam="'+i+'" data-field="name" value="'+esc(t.name)+'" placeholder="Alliance name"><input data-vteam="'+i+'" data-field="power" value="'+esc(t.power)+'" placeholder="Power"><select data-vteam="'+i+'" data-field="nationality"><option value="">Nationality</option>'+['Europe','America','Asia','Middle East'].map(n=>'<option value="'+n+'" '+(t.nationality===n?'selected':'')+'>'+n+'</option>').join('')+'</select></div>').join('');
@@ -49,6 +66,7 @@ function renderVersus(){
  document.querySelectorAll('.versus-result').forEach(sel=>sel.onchange=()=>{const key=sel.dataset.key;if(sel.value)versusData.results[key]=sel.value;else delete versusData.results[key];for(const k of Object.keys(versusData.results)){const w=Number(k.split('-')[0]);if(w>Number(key.split('-')[0]))delete versusData.results[k]}saveVersus();renderVersus()});
  const rows=versusData.teams.map((t,i)=>({i,t,...versusRecord(i)})).sort((a,b)=>b.w-a.w||a.i-b.i);
  renderDashboardVersus();
+ renderVersusPrediction();
  stand.innerHTML=rows.map((r,rank)=>'<tr><td>'+(rank+1)+'</td><td><strong>'+esc(r.t.name)+'</strong></td><td>'+esc(r.t.power||'—')+'</td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.w+'-'+r.l+'</td><td><span class="path-badge">'+esc(r.path||'—')+'</span></td></tr>').join('')
 }
 function versusMatchHtml(week,mi,p){const a=versusData.teams[p.a],b=versusData.teams[p.b],key=week+'-'+mi,r=versusData.results[key]||'',br=r==='W'?'L':r==='L'?'W':'',winner=r?(r==='W'?a.name:b.name):'—',loser=r?(r==='W'?b.name:a.name):'—';return '<div class="versus-match"><div class="versus-match-head"><strong>Match '+(mi+1)+'</strong><span class="path-badge">'+(p.path||'START')+'</span></div><div class="versus-side"><span>A</span><strong>'+esc(a.name)+'</strong><small>'+esc(a.power||'Power —')+'</small><select class="versus-result" data-key="'+key+'"><option value="">Result</option><option value="W" '+(r==='W'?'selected':'')+'>W</option><option value="L" '+(r==='L'?'selected':'')+'>L</option></select></div><div class="versus-side"><span>B</span><strong>'+esc(b.name)+'</strong><small>'+esc(b.power||'Power —')+'</small><b class="auto-result">'+(br||'—')+'</b></div><div class="versus-outcome"><span>Winner: <strong>'+esc(winner)+'</strong></span><span>Loser: <strong>'+esc(loser)+'</strong></span></div></div>'}
