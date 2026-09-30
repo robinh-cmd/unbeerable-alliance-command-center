@@ -264,7 +264,7 @@ function saveDesertStorm(){
 }
 document.querySelectorAll('[data-ds-team]').forEach(b=>b.addEventListener('click',()=>{desertStormTeam=b.dataset.dsTeam;renderDesertStorm()}));
 
-let desertPictureMatches=[],desertPictureTarget='a';
+let desertPictureMatches=[],desertPictureTarget='a',desertPictureStaged=null;
 function normalizeNameMatch(s){return String(s||'').toLocaleLowerCase().replace(/[^a-z0-9]/g,'')}
 function extractDsThp(s){
  const text=String(s||'').toUpperCase(),matches=text.match(/\b\d{1,3}(?:[.,]\d{1,3})?\s*[MBT]\b|\b\d{1,3}(?:,\d{3}){2,}\b|\b\d{7,12}\b/g);
@@ -297,18 +297,24 @@ async function saveDesertThpObservations(rows){
  if(!rows.length)return;await api('/rest/v1/desert_storm_thp_observations?on_conflict=event_date,member_name',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)})
 }
 async function applyDesertPictureNames(){
- const approved=desertPictureMatches.filter(x=>x.name&&x.thp).slice(0,30),names=[...new Set(approved.map(x=>x.name))],d=desertStormData[desertPictureTarget],status=document.getElementById('dsPictureStatus'),date=document.getElementById('dsPictureEventDate')?.value||upcomingFridayIso();
+ const approved=desertPictureMatches.filter(x=>x.name&&x.thp).slice(0,30),names=[...new Set(approved.map(x=>x.name))],d=desertStormData[desertPictureTarget],status=document.getElementById('dsPictureStatus'),date=document.getElementById('dsPictureEventDate')?.value||upcomingFridayIso(),sync=document.getElementById('dsSyncPictureData');
  if(!approved.length)return;
  d.starters=Array(20).fill('');d.subs=Array(10).fill('');names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20,30).forEach((n,i)=>d.subs[i]=n);
- const rows=approved.map((x,i)=>({event_date:date,team:desertPictureTarget.toUpperCase(),role:i<20?'starter':'substitute',slot_number:i<20?i+1:i-19,member_name:x.name,thp:x.thp,sync_status:'pending'}));
- try{if(status)status.textContent='Saving approved THP measurements…';await saveDesertThpObservations(rows);desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();document.getElementById('dsPictureReview').hidden=true}
- catch(e){if(status)status.textContent='Could not queue THP updates: '+e.message}
+ desertPictureStaged={date,team:desertPictureTarget,rows:approved.map((x,i)=>({event_date:date,team:desertPictureTarget.toUpperCase(),role:i<20?'starter':'substitute',slot_number:i<20?i+1:i-19,member_name:x.name,thp:x.thp,sync_status:'pending'}))};
+ desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();if(sync)sync.disabled=false;if(status)status.textContent='Staged '+approved.length+' reviewed THP values. Make any final THP edits above, then press SYNC to start the automation workflow.'
+}
+async function syncDesertPictureData(){
+ const status=document.getElementById('dsPictureStatus'),sync=document.getElementById('dsSyncPictureData');if(!desertPictureStaged?.rows?.length)return;
+ desertPictureStaged.rows.forEach((r,i)=>{const current=desertPictureMatches.find(x=>x.name===r.member_name);if(current?.thp)r.thp=current.thp.trim()});
+ try{sync.disabled=true;if(status)status.textContent='Queuing reviewed Desert Storm THP for synchronization…';await saveDesertThpObservations(desertPictureStaged.rows);if(status)status.textContent='SYNC confirmed. Data is queued for Desert Storm → Alliance Members → website Members → growth history.';desertPictureStaged=null;setTimeout(()=>{const review=document.getElementById('dsPictureReview');if(review)review.hidden=true},900)}
+ catch(e){sync.disabled=false;if(status)status.textContent='SYNC could not be queued: '+e.message}
 }
 function openDesertPictureImport(){desertPictureTarget=desertStormTeam;const input=document.getElementById('dsPictureInput');if(input)input.click()}
 document.getElementById('dsPictureBtn')?.addEventListener('click',openDesertPictureImport);
-document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f),review=document.getElementById('dsPictureReview'),date=document.getElementById('dsPictureEventDate');document.getElementById('dsPicturePreview').src=url;document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members + THP';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;if(date&&!date.value)date.value=upcomingFridayIso();document.getElementById('dsPictureStatus').textContent='Picture loaded. Starting OCR…';review.hidden=false;scanDesertPicture(f);e.target.value=''});
+document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f),review=document.getElementById('dsPictureReview'),date=document.getElementById('dsPictureEventDate');document.getElementById('dsPicturePreview').src=url;document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members + THP';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;document.getElementById('dsSyncPictureData').disabled=true;desertPictureStaged=null;if(date&&!date.value)date.value=upcomingFridayIso();document.getElementById('dsPictureStatus').textContent='Picture loaded. Starting OCR…';review.hidden=false;scanDesertPicture(f);e.target.value=''});
 document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
 document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
+document.getElementById('dsSyncPictureData')?.addEventListener('click',syncDesertPictureData);
 document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
 
 let dsSkipHistory=[],dsSkipDraft=[],dsSkipMode=false;
