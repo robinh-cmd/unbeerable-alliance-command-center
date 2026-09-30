@@ -97,7 +97,7 @@ function loadMembers(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)|
 function saveLocal(){localStorage.setItem(STORAGE_KEY,JSON.stringify(members))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function parseTHP(v){const raw=String(v??'').trim();if(!raw)return 0;const s=raw.replace(/[\s,]/g,'').replace(/[^0-9.+-]/g,''),n=Number(s);if(!Number.isFinite(n))return 0;return n<1000000?n*1000000:n}
-function compactTHP(n){if(n>=1e9)return (n/1e9).toFixed(n>=1e10?1:2).replace(/\.0+$|(?<=\.[0-9])0$/,'')+'B';if(n>=1e6)return (n/1e6).toFixed(n>=1e8?1:2).replace(/\.0+$|(?<=\.[0-9])0$/,'')+'M';if(n>=1e3)return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';return Math.round(n).toLocaleString()}
+function compactTHP(n){if(n>=1e9)return (n/1e9).toFixed(n<1e10?3:2).replace(/0+$/,'').replace(/\.$/,'')+'B';if(n>=1e6)return (n/1e6).toFixed(n>=1e8?1:2).replace(/\.0+$|(?<=\.[0-9])0$/,'')+'M';if(n>=1e3)return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';return Math.round(n).toLocaleString()}
 function updateTroopTypeCounts(){
  const counts={tank:0,air:0,missile:0,unspecified:0};
  members.forEach(m=>{const t=String(m.type||'').trim().toLowerCase();if(t.includes('tank'))counts.tank++;else if(t.includes('air'))counts.air++;else if(t.includes('missile'))counts.missile++;else counts.unspecified++});
