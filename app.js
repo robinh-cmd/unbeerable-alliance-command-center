@@ -29,6 +29,18 @@ function versusPairings(week){
  })
 }
 function versusRecord(i){const p=fullPath(i);return{w:[...p].filter(x=>x==='W').length,l:[...p].filter(x=>x==='L').length,path:p}}
+function renderDashboardVersus(){
+ const el=document.getElementById('dashboardVersusOpponent'),badge=document.getElementById('dashboardVersusWeek');if(!el||!badge)return;
+ const idx=versusData.teams.findIndex(t=>(t.name||'').trim().toUpperCase()==='8EER');
+ if(idx<0){badge.textContent='Week —';el.innerHTML='<div class="train-empty">8EER is not in the active Versus tournament.</div>';return}
+ let week=1;
+ for(let w=1;w<=VERSUS_WEEKS;w++){const pair=versusPairings(w).find(p=>p.a===idx||p.b===idx);if(!pair){week=w;break}const key=w+'-'+pair.a+'-'+pair.b;if(!versusData.results[key]){week=w;break}week=Math.min(w+1,VERSUS_WEEKS)}
+ const pair=versusPairings(week).find(p=>p.a===idx||p.b===idx);
+ badge.textContent='Week '+week;
+ if(!pair){el.innerHTML='<div class="train-empty">Complete the previous week to generate 8EER’s next opponent.</div>';return}
+ const oi=pair.a===idx?pair.b:pair.a,opp=versusData.teams[oi],rec=versusRecord(idx),orec=versusRecord(oi);
+ el.innerHTML='<div class="dashboard-train-day"><span>8EER</span><div><small>RECORD</small><strong>'+rec.w+'-'+rec.l+'</strong></div><div><small>PATH</small><strong>'+esc(rec.path||'Opening')+'</strong></div></div><div class="dashboard-train-day"><span>VS</span><div><small>OPPONENT</small><strong>'+esc(opp.name||('Alliance '+(oi+1)))+'</strong></div><div><small>POWER · REGION</small><strong>'+esc((opp.power||'—')+' · '+(opp.nationality||'—'))+'</strong></div></div><div class="dashboard-train-day"><span>'+esc(opp.name||('Alliance '+(oi+1)))+'</span><div><small>RECORD</small><strong>'+orec.w+'-'+orec.l+'</strong></div><div><small>PATH</small><strong>'+esc(orec.path||'Opening')+'</strong></div></div>'
+}
 function renderVersus(){
  const list=document.getElementById('versusTeamList'),weeks=document.getElementById('versusWeeks'),stand=document.getElementById('versusStandingsBody');if(!list||!weeks||!stand)return;
  list.innerHTML=versusData.teams.map((t,i)=>'<div class="versus-team-row"><span class="versus-seed">#'+(i+1)+'</span><input data-vteam="'+i+'" data-field="name" value="'+esc(t.name)+'" placeholder="Alliance name"><input data-vteam="'+i+'" data-field="power" value="'+esc(t.power)+'" placeholder="Power"><select data-vteam="'+i+'" data-field="nationality"><option value="">Nationality</option>'+['Europe','America','Asia','Middle East'].map(n=>'<option value="'+n+'" '+(t.nationality===n?'selected':'')+'>'+n+'</option>').join('')+'</select></div>').join('');
@@ -36,6 +48,7 @@ function renderVersus(){
  weeks.innerHTML=Array.from({length:4},(_,wi)=>{const week=wi+1,pairs=versusPairings(week);return '<article class="panel versus-week"><div class="panel-head"><div><span class="eyebrow">WEEK '+week+'</span><h3>'+(week===1?'Opening Pairings':'Path Pairings')+'</h3></div><span class="pill">'+(week===1?'Original order':'Exact '+('W/L '.repeat(week-1)).trim()+' path')+'</span></div><div class="versus-matches">'+(pairs.length?pairs.map((p,mi)=>versusMatchHtml(week,mi,p)).join(''):'<p class="muted">Complete Week '+(week-1)+' results to generate these pairings.</p>')+'</div></article>'}).join('');
  document.querySelectorAll('.versus-result').forEach(sel=>sel.onchange=()=>{const key=sel.dataset.key;if(sel.value)versusData.results[key]=sel.value;else delete versusData.results[key];for(const k of Object.keys(versusData.results)){const w=Number(k.split('-')[0]);if(w>Number(key.split('-')[0]))delete versusData.results[k]}saveVersus();renderVersus()});
  const rows=versusData.teams.map((t,i)=>({i,t,...versusRecord(i)})).sort((a,b)=>b.w-a.w||a.i-b.i);
+ renderDashboardVersus();
  stand.innerHTML=rows.map((r,rank)=>'<tr><td>'+(rank+1)+'</td><td><strong>'+esc(r.t.name)+'</strong></td><td>'+esc(r.t.power||'—')+'</td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.w+'-'+r.l+'</td><td><span class="path-badge">'+esc(r.path||'—')+'</span></td></tr>').join('')
 }
 function versusMatchHtml(week,mi,p){const a=versusData.teams[p.a],b=versusData.teams[p.b],key=week+'-'+mi,r=versusData.results[key]||'',br=r==='W'?'L':r==='L'?'W':'',winner=r?(r==='W'?a.name:b.name):'—',loser=r?(r==='W'?b.name:a.name):'—';return '<div class="versus-match"><div class="versus-match-head"><strong>Match '+(mi+1)+'</strong><span class="path-badge">'+(p.path||'START')+'</span></div><div class="versus-side"><span>A</span><strong>'+esc(a.name)+'</strong><small>'+esc(a.power||'Power —')+'</small><select class="versus-result" data-key="'+key+'"><option value="">Result</option><option value="W" '+(r==='W'?'selected':'')+'>W</option><option value="L" '+(r==='L'?'selected':'')+'>L</option></select></div><div class="versus-side"><span>B</span><strong>'+esc(b.name)+'</strong><small>'+esc(b.power||'Power —')+'</small><b class="auto-result">'+(br||'—')+'</b></div><div class="versus-outcome"><span>Winner: <strong>'+esc(winner)+'</strong></span><span>Loser: <strong>'+esc(loser)+'</strong></span></div></div>'}
