@@ -15,7 +15,7 @@ let versusData=loadVersus();
 })();
 let versusSaveTimer=null,versusCloudLoaded=false;
 function saveVersus(){localStorage.setItem(VERSUS_KEY,JSON.stringify(versusData));if(cloudReady&&versusCloudLoaded){clearTimeout(versusSaveTimer);versusSaveTimer=setTimeout(saveVersusCloud,350)}}
-async function saveVersusCloud(){if(!cloudReady)return;try{await api('/rest/v1/versus_active_tournament?on_conflict=slot',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({slot:'current',tournament_data:versusData,updated_at:new Date().toISOString()})})}catch(e){console.warn('Versus autosave failed',e)}}
+async function saveVersusCloud(showStatus=false){const status=document.getElementById('versusSaveStatus');if(!cloudReady){if(showStatus&&status)status.textContent='Cloud not connected';return false}try{if(showStatus&&status)status.textContent='Saving…';await api('/rest/v1/versus_active_tournament?on_conflict=slot',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({slot:'current',tournament_data:versusData,updated_at:new Date().toISOString()})});if(status)status.textContent='Saved to cloud';return true}catch(e){console.warn('Versus autosave failed',e);if(status)status.textContent='Save failed';if(showStatus)alert('Could not save Versus data: '+e.message);return false}}
 async function loadActiveVersus(){if(!cloudReady)return;try{const rows=await api('/rest/v1/versus_active_tournament?slot=eq.current&select=tournament_data,updated_at');if(rows?.length&&rows[0].tournament_data?.teams?.length===16){versusData=rows[0].tournament_data;localStorage.setItem(VERSUS_KEY,JSON.stringify(versusData));renderVersus()}else{await api('/rest/v1/versus_active_tournament',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({slot:'current',tournament_data:versusData})})}versusCloudLoaded=true}catch(e){console.warn('Versus active load failed',e);versusCloudLoaded=true}}
 function resultFor(teamIndex,week){for(const [key,r] of Object.entries(versusData.results)){const [w,m]=key.split('-').map(Number);if(w!==week)continue;const p=versusPairings(week)[m];if(!p)continue;if(p.a===teamIndex)return r;if(p.b===teamIndex)return r==='W'?'L':r==='L'?'W':''}return''}
 function pathBefore(teamIndex,week){let p='';for(let w=1;w<week;w++)p+=resultFor(teamIndex,w);return p}
@@ -113,6 +113,7 @@ document.getElementById('versusPictureBtn').onclick=()=>document.getElementById(
 document.getElementById('versusPictureInput').onchange=e=>scanVersusPicture(e.target.files[0]);
 document.getElementById('versusApplyOcrBtn').onclick=applyVersusOcr;
 document.getElementById('versusCancelOcrBtn').onclick=cancelVersusOcr;
+document.getElementById('saveVersusBtn').onclick=()=>saveVersusCloud(true);
 document.getElementById('archiveVersusBtn').onclick=archiveVersus;
 document.getElementById('undoVersusArchiveBtn').onclick=undoLatestVersusArchive;
 document.getElementById('resetVersusBtn').onclick=resetVersus;
