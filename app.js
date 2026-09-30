@@ -225,7 +225,7 @@ function renderDesertStorm(){
  const se=document.getElementById('dsStarters'),su=document.getElementById('dsSubs');if(!se||!su)return;
  se.innerHTML=d.starters.map((_,i)=>desertSlot('starters',i)).join('');su.innerHTML=d.subs.map((_,i)=>desertSlot('subs',i)).join('');
  const sc=d.starters.filter(Boolean).length,uc=d.subs.filter(Boolean).length;
- document.getElementById('dsTeamLabel').textContent=label;document.getElementById('dsTeamFilled').textContent=(sc+uc)+'/30';document.getElementById('dsStarterCount').textContent=sc+'/20';document.getElementById('dsSubCount').textContent=uc+'/10';document.getElementById('dsStartersTitle').textContent=label+' · 20 Starters';document.getElementById('dsSubsTitle').textContent=label+' · 10 Subs';
+ const picBtn=document.getElementById('dsPictureBtn');if(picBtn)picBtn.textContent='Import '+label+' from picture';document.getElementById('dsTeamLabel').textContent=label;document.getElementById('dsTeamFilled').textContent=(sc+uc)+'/30';document.getElementById('dsStarterCount').textContent=sc+'/20';document.getElementById('dsSubCount').textContent=uc+'/10';document.getElementById('dsStartersTitle').textContent=label+' · 20 Starters';document.getElementById('dsSubsTitle').textContent=label+' · 10 Subs';
  document.querySelectorAll('[data-ds-kind]').forEach(sel=>sel.onchange=()=>{const k=sel.dataset.dsKind,i=Number(sel.dataset.dsIndex);desertStormData[desertStormTeam][k][i]=sel.value;renderDesertStorm();saveDesertStorm()})
 }
 async function loadDesertStorm(){
@@ -235,3 +235,33 @@ function saveDesertStorm(){
  localStorage.setItem(DESERT_STORM_KEY,JSON.stringify(desertStormData));const st=document.getElementById('desertStormSaveStatus');if(st)st.textContent='Saving…';clearTimeout(desertSaveTimer);desertSaveTimer=setTimeout(async()=>{try{await api('/rest/v1/desert_storm_roster?slot=eq.current',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({roster_data:desertStormData,updated_at:new Date().toISOString()})});if(st)st.textContent='Saved to shared roster'}catch(e){if(st)st.textContent='Saved locally · cloud error'}},350)
 }
 document.querySelectorAll('[data-ds-team]').forEach(b=>b.addEventListener('click',()=>{desertStormTeam=b.dataset.dsTeam;renderDesertStorm()}));
+
+let desertPictureMatches=[],desertPictureTarget='a';
+function normalizeNameMatch(s){return String(s||'').toLocaleLowerCase().replace(/[^a-z0-9]/g,'')}
+function matchDesertPictureNames(){
+ const raw=document.getElementById('dsPictureNames')?.value||'',lines=[...new Set(raw.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean))];
+ const used=desertSelected(),available=members.filter(m=>!used.has(m.name.toLocaleLowerCase())||desertStormData[desertPictureTarget].starters.includes(m.name)||desertStormData[desertPictureTarget].subs.includes(m.name));
+ desertPictureMatches=lines.map(line=>{
+  const norm=normalizeNameMatch(line);
+  let exact=available.find(m=>normalizeNameMatch(m.name)===norm);
+  if(exact)return{input:line,name:exact.name,quality:'Exact'};
+  const candidates=available.filter(m=>{const n=normalizeNameMatch(m.name);return norm.length>=4&&(n.includes(norm)||norm.includes(n))});
+  return{input:line,name:candidates.length===1?candidates[0].name:'',quality:candidates.length===1?'Possible':'No match'}
+ });
+ const box=document.getElementById('dsPictureMatches'),apply=document.getElementById('dsApplyPictureNames'),status=document.getElementById('dsPictureStatus');
+ if(box)box.innerHTML=desertPictureMatches.map((x,i)=>'<div class="ds-picture-match '+(x.name?'matched':'unmatched')+'"><span>'+esc(x.input)+'</span><strong>'+(x.name?esc(x.name):'Not matched')+'</strong><small>'+x.quality+'</small></div>').join('');
+ const matched=desertPictureMatches.filter(x=>x.name).length;if(apply)apply.disabled=!matched;if(status)status.textContent=matched+' of '+lines.length+' names matched to the alliance roster.'
+}
+function applyDesertPictureNames(){
+ const names=[...new Set(desertPictureMatches.filter(x=>x.name).map(x=>x.name))].slice(0,30),d=desertStormData[desertPictureTarget];
+ d.starters=Array(20).fill('');d.subs=Array(10).fill('');names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20,30).forEach((n,i)=>d.subs[i]=n);
+ desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();document.getElementById('dsPictureReview').hidden=true
+}
+function openDesertPictureImport(){
+ desertPictureTarget=desertStormTeam;const input=document.getElementById('dsPictureInput');if(input)input.click()
+}
+document.getElementById('dsPictureBtn')?.addEventListener('click',openDesertPictureImport);
+document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f),review=document.getElementById('dsPictureReview');document.getElementById('dsPicturePreview').src=url;document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;document.getElementById('dsPictureStatus').textContent='Picture loaded. Enter the visible names, then select Match names.';review.hidden=false;e.target.value=''});
+document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
+document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
+document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
