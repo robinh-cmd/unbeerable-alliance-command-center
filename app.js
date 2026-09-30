@@ -225,7 +225,7 @@ function renderDesertStorm(){
  const se=document.getElementById('dsStarters'),su=document.getElementById('dsSubs');if(!se||!su)return;
  se.innerHTML=d.starters.map((_,i)=>desertSlot('starters',i)).join('');su.innerHTML=d.subs.map((_,i)=>desertSlot('subs',i)).join('');
  const sc=d.starters.filter(Boolean).length,uc=d.subs.filter(Boolean).length;
- const picBtn=document.getElementById('dsPictureBtn');if(picBtn)picBtn.textContent='Import '+label+' from picture';document.getElementById('dsTeamLabel').textContent=label;document.getElementById('dsTeamFilled').textContent=(sc+uc)+'/30';document.getElementById('dsStarterCount').textContent=sc+'/20';document.getElementById('dsSubCount').textContent=uc+'/10';document.getElementById('dsStartersTitle').textContent=label+' · 20 Starters';document.getElementById('dsSubsTitle').textContent=label+' · 10 Subs';
+ const picBtn=document.getElementById('dsPictureBtn');if(picBtn)picBtn.textContent='Import '+label+' from picture';const picBtn=document.getElementById('dsPictureBtn');if(picBtn)picBtn.textContent='Import '+label+' from picture';document.getElementById('dsTeamLabel').textContent=label;document.getElementById('dsTeamFilled').textContent=(sc+uc)+'/30';document.getElementById('dsStarterCount').textContent=sc+'/20';document.getElementById('dsSubCount').textContent=uc+'/10';document.getElementById('dsStartersTitle').textContent=label+' · 20 Starters';document.getElementById('dsSubsTitle').textContent=label+' · 10 Subs';
  document.querySelectorAll('[data-ds-kind]').forEach(sel=>sel.onchange=()=>{const k=sel.dataset.dsKind,i=Number(sel.dataset.dsIndex);desertStormData[desertStormTeam][k][i]=sel.value;renderDesertStorm();saveDesertStorm()})
 }
 async function loadDesertStorm(){
@@ -262,6 +262,24 @@ function openDesertPictureImport(){
 }
 document.getElementById('dsPictureBtn')?.addEventListener('click',openDesertPictureImport);
 document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f),review=document.getElementById('dsPictureReview');document.getElementById('dsPicturePreview').src=url;document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;document.getElementById('dsPictureStatus').textContent='Picture loaded. Enter the visible names, then select Match names.';review.hidden=false;e.target.value=''});
+document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
+document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
+document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
+
+let desertPictureMatches=[],desertPictureTarget='a';
+function dsNorm(s){return String(s||'').toLocaleLowerCase().replace(/[^a-z0-9]/g,'')}
+function matchDesertPictureNames(){
+ const raw=document.getElementById('dsPictureNames')?.value||'';
+ const lines=[...new Set(raw.split('\n').map(v=>v.trim()).filter(Boolean))];
+ desertPictureMatches=lines.map(line=>{const n=dsNorm(line),exact=members.find(m=>dsNorm(m.name)===n);if(exact)return{input:line,name:exact.name};const hits=members.filter(m=>{const q=dsNorm(m.name);return n.length>=4&&(q.includes(n)||n.includes(q))});return{input:line,name:hits.length===1?hits[0].name:''}});
+ const box=document.getElementById('dsPictureMatches');if(box)box.innerHTML=desertPictureMatches.map(v=>'<div class="ds-picture-match"><span>'+esc(v.input)+'</span><strong>'+(v.name?esc(v.name):'Not matched')+'</strong></div>').join('');
+ const count=desertPictureMatches.filter(v=>v.name).length,apply=document.getElementById('dsApplyPictureNames'),status=document.getElementById('dsPictureStatus');if(apply)apply.disabled=!count;if(status)status.textContent=count+' of '+lines.length+' names matched.'
+}
+function applyDesertPictureNames(){
+ const names=[...new Set(desertPictureMatches.filter(v=>v.name).map(v=>v.name))].slice(0,30),d=desertStormData[desertPictureTarget];d.starters=Array(20).fill('');d.subs=Array(10).fill('');names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20).forEach((n,i)=>d.subs[i]=n);desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();document.getElementById('dsPictureReview').hidden=true
+}
+document.getElementById('dsPictureBtn')?.addEventListener('click',()=>{desertPictureTarget=desertStormTeam;document.getElementById('dsPictureInput')?.click()});
+document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;document.getElementById('dsPicturePreview').src=URL.createObjectURL(f);document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;document.getElementById('dsPictureReview').hidden=false;e.target.value=''});
 document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
 document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
 document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
