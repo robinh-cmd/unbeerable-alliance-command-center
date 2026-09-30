@@ -265,3 +265,23 @@ document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f
 document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
 document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
 document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
+
+let dsSkipHistory=[],dsSkipDraft=[],dsSkipMode=false;
+function dsPreviousSkipped(){return new Set((dsSkipHistory[0]?.skipped_members||[]).map(n=>String(n).toLocaleLowerCase()))}
+function renderDsSkip(){
+ const view=document.getElementById('dsSkippedView');if(!view)return;view.hidden=!dsSkipMode;
+ const summary=document.querySelector('#desert-storm>.desert-team-summary'),starters=document.querySelector('#dsStarters')?.closest('article'),subs=document.querySelector('#dsSubs')?.closest('article');
+ [summary,starters,subs].forEach(e=>{if(e)e.hidden=dsSkipMode});const pic=document.getElementById('dsPictureBtn');if(pic)pic.hidden=dsSkipMode;if(!dsSkipMode)return;
+ const blocked=dsPreviousSkipped(),chosen=new Set(dsSkipDraft.map(n=>n.toLocaleLowerCase())),eligible=members.filter(m=>!blocked.has(m.name.toLocaleLowerCase())&&!chosen.has(m.name.toLocaleLowerCase())),sel=document.getElementById('dsSkipMember');
+ sel.innerHTML='<option value="">Select eligible member</option>'+eligible.map(m=>'<option value="'+esc(m.name)+'">'+esc(m.name)+'</option>').join('');
+ document.getElementById('dsSkipCount').textContent=dsSkipDraft.length;document.getElementById('dsLastSkipCount').textContent=blocked.size;document.getElementById('dsEligibleSkipCount').textContent=eligible.length;
+ document.getElementById('dsCurrentSkipped').innerHTML=dsSkipDraft.length?dsSkipDraft.map((n,i)=>'<button class="ds-skip-chip" data-remove-skip="'+i+'">'+esc(n)+' ×</button>').join(''):'<div class="train-empty">No members selected yet.</div>';
+ document.querySelectorAll('[data-remove-skip]').forEach(b=>b.onclick=()=>{dsSkipDraft.splice(Number(b.dataset.removeSkip),1);renderDsSkip()});
+ document.getElementById('dsSkipHistoryCount').textContent=dsSkipHistory.length+' events';document.getElementById('dsSkipHistory').innerHTML=dsSkipHistory.length?dsSkipHistory.map((h,i)=>'<div class="ds-skip-history-item"><div><strong>'+h.event_date+'</strong><span>'+h.skipped_members.length+' skipped</span></div><p>'+h.skipped_members.map(esc).join(' · ')+'</p>'+(i===0?'<small>Blocked from next event</small>':'')+'</div>').join(''):'<div class="train-empty">No skip history saved yet.</div>'
+}
+async function loadDsSkipHistory(){try{dsSkipHistory=await api('/rest/v1/desert_storm_skip_history?select=event_date,skipped_members&order=event_date.desc&limit=52')||[]}catch(e){console.warn(e)}const d=document.getElementById('dsSkipDate');if(d&&!d.value){const n=new Date(),add=(5-n.getDay()+7)%7;n.setDate(n.getDate()+add);d.value=n.toISOString().slice(0,10)}renderDsSkip()}
+async function saveDsSkipEvent(){const date=document.getElementById('dsSkipDate')?.value;if(!date)return;const blocked=dsPreviousSkipped();if(dsSkipDraft.some(n=>blocked.has(n.toLocaleLowerCase())))return;try{await api('/rest/v1/desert_storm_skip_history?on_conflict=event_date',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({event_date:date,skipped_members:dsSkipDraft,updated_at:new Date().toISOString()})});dsSkipDraft=[];await loadDsSkipHistory()}catch(e){console.warn(e)}}
+document.getElementById('dsSkippedTab')?.addEventListener('click',()=>{dsSkipMode=true;document.querySelectorAll('[data-ds-team]').forEach(b=>b.classList.remove('active'));document.getElementById('dsSkippedTab').classList.add('active');renderDsSkip()});
+document.querySelectorAll('[data-ds-team]').forEach(b=>b.addEventListener('click',()=>{dsSkipMode=false;document.getElementById('dsSkippedTab')?.classList.remove('active');renderDsSkip()}));
+document.getElementById('dsAddSkipped')?.addEventListener('click',()=>{const s=document.getElementById('dsSkipMember');if(s?.value){dsSkipDraft.push(s.value);renderDsSkip()}});
+document.getElementById('dsSaveSkipped')?.addEventListener('click',saveDsSkipEvent);loadDsSkipHistory();
