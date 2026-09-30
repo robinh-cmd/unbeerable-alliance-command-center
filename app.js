@@ -266,30 +266,47 @@ document.querySelectorAll('[data-ds-team]').forEach(b=>b.addEventListener('click
 
 let desertPictureMatches=[],desertPictureTarget='a';
 function normalizeNameMatch(s){return String(s||'').toLocaleLowerCase().replace(/[^a-z0-9]/g,'')}
+function extractDsThp(s){
+ const text=String(s||'').toUpperCase(),matches=text.match(/\b\d{1,3}(?:[.,]\d{1,3})?\s*[MBT]\b|\b\d{1,3}(?:,\d{3}){2,}\b|\b\d{7,12}\b/g);
+ return matches?.length?matches[matches.length-1].replace(/\s/g,''):''
+}
+function upcomingFridayIso(){const n=new Date(),add=(5-n.getDay()+7)%7;n.setDate(n.getDate()+add);return n.toISOString().slice(0,10)}
 function matchDesertPictureNames(){
- const raw=document.getElementById('dsPictureNames')?.value||'',lines=[...new Set(raw.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean))];
- const used=desertSelected(),available=members.filter(m=>!used.has(m.name.toLocaleLowerCase())||desertStormData[desertPictureTarget].starters.includes(m.name)||desertStormData[desertPictureTarget].subs.includes(m.name));
- desertPictureMatches=lines.map(line=>{
-  const norm=normalizeNameMatch(line);
-  let exact=available.find(m=>normalizeNameMatch(m.name)===norm);
-  if(exact)return{input:line,name:exact.name,quality:'Exact'};
-  const candidates=available.filter(m=>{const n=normalizeNameMatch(m.name);return norm.length>=4&&(n.includes(norm)||norm.includes(n))});
-  return{input:line,name:candidates.length===1?candidates[0].name:'',quality:candidates.length===1?'Possible':'No match'}
- });
+ const raw=document.getElementById('dsPictureNames')?.value||'',lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),roster=members.slice().sort((a,b)=>normalizeNameMatch(b.name).length-normalizeNameMatch(a.name).length);
+ const found=[],seen=new Set();
+ for(let i=0;i<lines.length;i++){
+  const line=lines[i],norm=normalizeNameMatch(line);let m=roster.find(x=>{const n=normalizeNameMatch(x.name);return n.length>=3&&norm.includes(n)});
+  if(!m){const candidates=roster.filter(x=>{const n=normalizeNameMatch(x.name);return n.length>=4&&(n.includes(norm)||norm.includes(n))});if(candidates.length===1)m=candidates[0]}
+  if(!m||seen.has(m.name.toLocaleLowerCase()))continue;seen.add(m.name.toLocaleLowerCase());
+  const thp=extractDsThp(line)||extractDsThp(lines[i+1]||'');found.push({input:line,name:m.name,thp,quality:norm.includes(normalizeNameMatch(m.name))?'Detected':'Possible'})
+ }
+ desertPictureMatches=found;
  const box=document.getElementById('dsPictureMatches'),apply=document.getElementById('dsApplyPictureNames'),status=document.getElementById('dsPictureStatus');
- if(box)box.innerHTML=desertPictureMatches.map((x,i)=>'<div class="ds-picture-match '+(x.name?'matched':'unmatched')+'"><span>'+esc(x.input)+'</span><strong>'+(x.name?esc(x.name):'Not matched')+'</strong><small>'+x.quality+'</small></div>').join('');
- const matched=desertPictureMatches.filter(x=>x.name).length;if(apply)apply.disabled=!matched;if(status)status.textContent=matched+' of '+lines.length+' names matched to the alliance roster.'
+ if(box)box.innerHTML=desertPictureMatches.map((x,i)=>'<div class="ds-picture-match '+(x.name?'matched':'unmatched')+'"><span>'+esc(x.input)+'</span><strong>'+esc(x.name)+'</strong><label>THP<input class="ds-picture-thp-input" data-ds-thp-index="'+i+'" value="'+esc(x.thp)+'" placeholder="e.g. 172M"></label><small>'+x.quality+'</small></div>').join('');
+ box?.querySelectorAll('[data-ds-thp-index]').forEach(inp=>inp.oninput=()=>{desertPictureMatches[Number(inp.dataset.dsThpIndex)].thp=inp.value.trim();const good=desertPictureMatches.filter(x=>x.name&&x.thp).length;if(apply)apply.disabled=!good});
+ const matched=desertPictureMatches.filter(x=>x.name).length,withThp=desertPictureMatches.filter(x=>x.name&&x.thp).length;if(apply)apply.disabled=!withThp;if(status)status.textContent=matched+' players matched · '+withThp+' THP values ready. Review every value before approval.'
 }
-function applyDesertPictureNames(){
- const names=[...new Set(desertPictureMatches.filter(x=>x.name).map(x=>x.name))].slice(0,30),d=desertStormData[desertPictureTarget];
+async function scanDesertPicture(file){
+ const status=document.getElementById('dsPictureStatus'),box=document.getElementById('dsPictureNames');if(!file||!box)return;
+ if(!window.Tesseract){status.textContent='Picture reader did not load. Refresh and try again.';return}
+ status.textContent='Reading player names and THP… 0%';box.value='';
+ try{const result=await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent='Reading player names and THP… '+Math.round((m.progress||0)*100)+'%'}});box.value=result.data.text.trim();matchDesertPictureNames();if(!desertPictureMatches.length)status.textContent='Scan finished, but no roster names were matched. Correct the OCR text and select Re-scan text.'}
+ catch(e){status.textContent='Could not read this picture: '+e.message}
+}
+async function saveDesertThpObservations(rows){
+ if(!rows.length)return;await api('/rest/v1/desert_storm_thp_observations?on_conflict=event_date,member_name',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)})
+}
+async function applyDesertPictureNames(){
+ const approved=desertPictureMatches.filter(x=>x.name&&x.thp).slice(0,30),names=[...new Set(approved.map(x=>x.name))],d=desertStormData[desertPictureTarget],status=document.getElementById('dsPictureStatus'),date=document.getElementById('dsPictureEventDate')?.value||upcomingFridayIso();
+ if(!approved.length)return;
  d.starters=Array(20).fill('');d.subs=Array(10).fill('');names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20,30).forEach((n,i)=>d.subs[i]=n);
- desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();document.getElementById('dsPictureReview').hidden=true
+ const rows=approved.map((x,i)=>({event_date:date,team:desertPictureTarget.toUpperCase(),role:i<20?'starter':'substitute',slot_number:i<20?i+1:i-19,member_name:x.name,thp:x.thp,sync_status:'pending'}));
+ try{if(status)status.textContent='Saving approved THP measurements…';await saveDesertThpObservations(rows);desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();document.getElementById('dsPictureReview').hidden=true}
+ catch(e){if(status)status.textContent='Could not queue THP updates: '+e.message}
 }
-function openDesertPictureImport(){
- desertPictureTarget=desertStormTeam;const input=document.getElementById('dsPictureInput');if(input)input.click()
-}
+function openDesertPictureImport(){desertPictureTarget=desertStormTeam;const input=document.getElementById('dsPictureInput');if(input)input.click()}
 document.getElementById('dsPictureBtn')?.addEventListener('click',openDesertPictureImport);
-document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f),review=document.getElementById('dsPictureReview');document.getElementById('dsPicturePreview').src=url;document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;document.getElementById('dsPictureStatus').textContent='Picture loaded. Enter the visible names, then select Match names.';review.hidden=false;e.target.value=''});
+document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f),review=document.getElementById('dsPictureReview'),date=document.getElementById('dsPictureEventDate');document.getElementById('dsPicturePreview').src=url;document.getElementById('dsPictureTitle').textContent='Review Team '+desertPictureTarget.toUpperCase()+' members + THP';document.getElementById('dsPictureNames').value='';document.getElementById('dsPictureMatches').innerHTML='';document.getElementById('dsApplyPictureNames').disabled=true;if(date&&!date.value)date.value=upcomingFridayIso();document.getElementById('dsPictureStatus').textContent='Picture loaded. Starting OCR…';review.hidden=false;scanDesertPicture(f);e.target.value=''});
 document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
 document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
 document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
