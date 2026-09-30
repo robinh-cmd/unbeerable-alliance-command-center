@@ -104,3 +104,25 @@
  .dashboard-versus-metric .panel-head>.pill{position:static;transform:none}
  .dashboard-versus-metric .versus-dashboard-match{width:100%}
 }
+
+
+/* Mobile layout hardening: prevent desktop-width content from shrinking the phone viewport */
+@media(max-width:650px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .main{width:100%;max-width:100%;min-width:0}
+  .topbar{width:100%;max-width:100%}
+  .page,.page.active{width:100%;max-width:100%;min-width:0;margin:0;padding-left:16px;padding-right:16px}
+  .page>*{max-width:100%;min-width:0}
+  .panel,.metric,.versus-grid,.versus-weeks,.versus-team-list{min-width:0;max-width:100%}
+  .versus-grid{display:block;width:100%}
+  .versus-grid>.panel{width:100%;margin-bottom:14px}
+  .versus-team-row{width:100%;grid-template-columns:42px minmax(0,1fr) minmax(0,1fr)}
+  .versus-team-row input,.versus-team-row select{min-width:0;max-width:100%;font-size:16px}
+  .versus-matches{grid-template-columns:minmax(0,1fr)}
+  .versus-match{min-width:0}
+  .versus-side{grid-template-columns:22px minmax(0,1fr) 62px}
+  .versus-dashboard-match{width:100%;grid-template-columns:1fr}
+  #versus .metric,#versus .panel{width:100%;max-width:100%}
+  #versus .metric-grid{grid-template-columns:1fr}
+  #versus .hero,#versus .section-intro{width:100%}
+}
