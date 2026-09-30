@@ -48,3 +48,17 @@
 .versus-dashboard-record{margin:12px auto 8px;font-size:16px;font-weight:700}.versus-dashboard-record b{margin-left:8px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.07);font-size:12px}
 .versus-dashboard-vs{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.versus-dashboard-vs span{font-size:28px;font-weight:900}.versus-dashboard-vs small{color:var(--muted);margin-top:4px}
 @media(max-width:650px){.versus-dashboard-match{grid-template-columns:1fr}.versus-dashboard-vs{padding:2px}.versus-dashboard-vs span{font-size:20px}.versus-dashboard-team strong{font-size:22px}}
+
+/* Dashboard top summary: two compact metrics + wider Versus matchup */
+.dashboard-top-grid{grid-template-columns:minmax(190px,.8fr) minmax(190px,.8fr) minmax(430px,1.7fr);align-items:stretch}
+.dashboard-top-grid .dashboard-versus-metric{min-width:0}
+.dashboard-versus-metric .panel-head{margin-bottom:10px}
+.dashboard-versus-metric .panel-head h3{font-size:18px}
+.dashboard-versus-metric .versus-dashboard-match{grid-template-columns:minmax(120px,1fr) 62px minmax(140px,1fr);gap:8px;margin-top:4px}
+.dashboard-versus-metric .versus-dashboard-team{padding:12px 10px}
+.dashboard-versus-metric .versus-dashboard-team strong{font-size:22px}
+.dashboard-versus-metric .versus-dashboard-record{margin:8px auto 5px;font-size:14px}
+.dashboard-versus-metric .versus-dashboard-vs span{font-size:23px}
+.dashboard-versus-metric .versus-dashboard-vs small{font-size:11px}
+@media(max-width:1050px){.dashboard-top-grid{grid-template-columns:1fr 1fr}.dashboard-top-grid .dashboard-versus-metric{grid-column:1/-1}}
+@media(max-width:650px){.dashboard-top-grid{grid-template-columns:1fr}.dashboard-top-grid .dashboard-versus-metric{grid-column:auto}.dashboard-versus-metric .versus-dashboard-match{grid-template-columns:1fr}.dashboard-versus-metric .versus-dashboard-vs{padding:0}}
