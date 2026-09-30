@@ -34,12 +34,12 @@ function renderDashboardVersus(){
  const idx=versusData.teams.findIndex(t=>(t.name||'').trim().toUpperCase()==='8EER');
  if(idx<0){badge.textContent='Week —';el.innerHTML='<div class="train-empty">8EER is not in the active Versus tournament.</div>';return}
  let week=1;
- for(let w=1;w<=VERSUS_WEEKS;w++){const pair=versusPairings(w).find(p=>p.a===idx||p.b===idx);if(!pair){week=w;break}const key=w+'-'+pair.a+'-'+pair.b;if(!versusData.results[key]){week=w;break}week=Math.min(w+1,VERSUS_WEEKS)}
+ for(let w=1;w<=VERSUS_WEEKS;w++){if(!resultFor(idx,w)){week=w;break}week=Math.min(w+1,VERSUS_WEEKS)}
  const pair=versusPairings(week).find(p=>p.a===idx||p.b===idx);
  badge.textContent='Week '+week;
  if(!pair){el.innerHTML='<div class="train-empty">Complete the previous week to generate 8EER’s next opponent.</div>';return}
- const oi=pair.a===idx?pair.b:pair.a,opp=versusData.teams[oi],rec=versusRecord(idx),orec=versusRecord(oi);
- el.innerHTML='<div class="dashboard-train-day"><span>8EER</span><div><small>RECORD</small><strong>'+rec.w+'-'+rec.l+'</strong></div><div><small>PATH</small><strong>'+esc(rec.path||'Opening')+'</strong></div></div><div class="dashboard-train-day"><span>VS</span><div><small>OPPONENT</small><strong>'+esc(opp.name||('Alliance '+(oi+1)))+'</strong></div><div><small>POWER · REGION</small><strong>'+esc((opp.power||'—')+' · '+(opp.nationality||'—'))+'</strong></div></div><div class="dashboard-train-day"><span>'+esc(opp.name||('Alliance '+(oi+1)))+'</span><div><small>RECORD</small><strong>'+orec.w+'-'+orec.l+'</strong></div><div><small>PATH</small><strong>'+esc(orec.path||'Opening')+'</strong></div></div>'
+ const oi=pair.a===idx?pair.b:pair.a,me=versusData.teams[idx],opp=versusData.teams[oi],rec=versusRecord(idx),orec=versusRecord(oi),done=!!resultFor(idx,week);
+ el.innerHTML='<div class="versus-dashboard-match"><div class="versus-dashboard-team home"><small>YOUR ALLIANCE</small><strong>8EER</strong><span>'+esc(me.power||'Power —')+'</span><div class="versus-dashboard-record">'+rec.w+'-'+rec.l+' <b>'+esc(rec.path||'Opening')+'</b></div></div><div class="versus-dashboard-vs"><span>VS</span><small>'+(done?'Week complete':'Current matchup')+'</small></div><div class="versus-dashboard-team"><small>OPPONENT</small><strong>'+esc(opp.name||('Alliance '+(oi+1)))+'</strong><span>'+esc(opp.power||'Power —')+'</span><div class="versus-dashboard-record">'+orec.w+'-'+orec.l+' <b>'+esc(orec.path||'Opening')+'</b></div><em>'+esc(opp.nationality||'Region —')+'</em></div></div>'
 }
 function renderVersus(){
  const list=document.getElementById('versusTeamList'),weeks=document.getElementById('versusWeeks'),stand=document.getElementById('versusStandingsBody');if(!list||!weeks||!stand)return;
