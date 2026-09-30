@@ -301,13 +301,13 @@ async function applyDesertPictureNames(){
  if(!approved.length)return;
  d.starters=Array(20).fill('');d.subs=Array(10).fill('');names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20,30).forEach((n,i)=>d.subs[i]=n);
  desertPictureStaged={date,team:desertPictureTarget,rows:approved.map((x,i)=>({event_date:date,team:desertPictureTarget.toUpperCase(),role:i<20?'starter':'substitute',slot_number:i<20?i+1:i-19,member_name:x.name,thp:x.thp,sync_status:'pending'}))};
- desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();if(sync)sync.disabled=false;if(status)status.textContent='Staged '+approved.length+' reviewed THP values. Make any final THP edits above, then press SYNC to start the automation workflow.'
+ desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();if(sync)sync.disabled=false;const mainSync=document.getElementById('dsSyncMainBtn');if(mainSync){mainSync.disabled=false;mainSync.textContent='SYNC THP DATA · '+approved.length}if(status)status.textContent='Staged '+approved.length+' reviewed THP values. Make any final THP edits above, then press SYNC to start the automation workflow.'
 }
 async function syncDesertPictureData(){
  const status=document.getElementById('dsPictureStatus'),sync=document.getElementById('dsSyncPictureData');if(!desertPictureStaged?.rows?.length)return;
  desertPictureStaged.rows.forEach((r,i)=>{const current=desertPictureMatches.find(x=>x.name===r.member_name);if(current?.thp)r.thp=current.thp.trim()});
- try{sync.disabled=true;if(status)status.textContent='Queuing reviewed Desert Storm THP for synchronization…';await saveDesertThpObservations(desertPictureStaged.rows);if(status)status.textContent='SYNC confirmed. Data is queued for Desert Storm → Alliance Members → website Members → growth history.';desertPictureStaged=null;setTimeout(()=>{const review=document.getElementById('dsPictureReview');if(review)review.hidden=true},900)}
- catch(e){sync.disabled=false;if(status)status.textContent='SYNC could not be queued: '+e.message}
+ try{sync.disabled=true;const mainSync=document.getElementById('dsSyncMainBtn');if(mainSync){mainSync.disabled=true;mainSync.textContent='SYNCING…'}if(status)status.textContent='Queuing reviewed Desert Storm THP for synchronization…';await saveDesertThpObservations(desertPictureStaged.rows);if(status)status.textContent='SYNC confirmed. Data is queued for Desert Storm → Alliance Members → website Members → growth history.';desertPictureStaged=null;if(mainSync)mainSync.textContent='SYNC THP DATA';setTimeout(()=>{const review=document.getElementById('dsPictureReview');if(review)review.hidden=true},900)}
+ catch(e){sync.disabled=false;const mainSync=document.getElementById('dsSyncMainBtn');if(mainSync){mainSync.disabled=false;mainSync.textContent='SYNC THP DATA · RETRY'}if(status)status.textContent='SYNC could not be queued: '+e.message}
 }
 function openDesertPictureImport(){desertPictureTarget=desertStormTeam;const input=document.getElementById('dsPictureInput');if(input)input.click()}
 document.getElementById('dsPictureBtn')?.addEventListener('click',openDesertPictureImport);
@@ -315,6 +315,7 @@ document.getElementById('dsPictureInput')?.addEventListener('change',e=>{const f
 document.getElementById('dsMatchPictureNames')?.addEventListener('click',matchDesertPictureNames);
 document.getElementById('dsApplyPictureNames')?.addEventListener('click',applyDesertPictureNames);
 document.getElementById('dsSyncPictureData')?.addEventListener('click',syncDesertPictureData);
+document.getElementById('dsSyncMainBtn')?.addEventListener('click',syncDesertPictureData);
 document.getElementById('dsPictureClose')?.addEventListener('click',()=>document.getElementById('dsPictureReview').hidden=true);
 
 let dsSkipHistory=[],dsSkipDraft=[],dsSkipMode=false;
