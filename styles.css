@@ -85,3 +85,5 @@
 .ds-picture-date{display:grid;gap:5px;margin:0 0 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase}.ds-picture-date input{min-height:42px}.ds-picture-match{grid-template-columns:minmax(120px,1fr) minmax(110px,1fr) minmax(110px,.7fr) auto;align-items:center}.ds-picture-match label{display:grid;gap:3px;font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase}.ds-picture-thp-input{width:100%;min-width:0}@media(max-width:650px){.ds-picture-match{grid-template-columns:1fr 1fr}.ds-picture-match label{grid-column:1/-1}}
 
 .ds-sync-btn{font-weight:900;letter-spacing:.08em;min-width:96px}.ds-sync-btn:disabled{opacity:.45;cursor:not-allowed}
+
+.ds-toolbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.desert-team-toolbar .ds-sync-btn{min-height:40px;padding-inline:18px}@media(max-width:650px){.ds-toolbar-actions{width:100%}.ds-toolbar-actions button{flex:1 1 160px}}
