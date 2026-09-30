@@ -238,13 +238,13 @@ function renderReminders(){const day=allianceNow().getDay(),names=['Sunday','Mon
 renderVersus();renderMembers();renderShinyCalendar();renderReminders();renderRotationCalendar();renderDashboardToday();setInterval(renderDashboardToday,60000);initCloud();if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 const DESERT_STORM_KEY='unbeerable_desert_storm_v1';
 let desertStormData={a:{starters:Array(20).fill(''),subs:Array(10).fill('')},b:{starters:Array(20).fill(''),subs:Array(10).fill('')}},desertStormTeam='a',desertSaveTimer=null;
-function normalizeDesertStorm(x){const out={a:{starters:Array(20).fill(''),subs:Array(10).fill('')},b:{starters:Array(20).fill(''),subs:Array(10).fill('')}};for(const t of ['a','b']){for(const k of ['starters','subs']){const n=k==='starters'?20:10;(x?.[t]?.[k]||[]).slice(0,n).forEach((v,i)=>out[t][k][i]=String(v||''))}}return out}
+function normalizeDesertStorm(x){const out={a:{starters:Array(20).fill(''),subs:Array(10).fill(''),thp:{}},b:{starters:Array(20).fill(''),subs:Array(10).fill(''),thp:{}}};for(const t of ['a','b']){for(const k of ['starters','subs']){const n=k==='starters'?20:10;(x?.[t]?.[k]||[]).slice(0,n).forEach((v,i)=>out[t][k][i]=String(v||''))}if(x?.[t]?.thp&&typeof x[t].thp==='object')out[t].thp={...x[t].thp}}return out}
 function desertSelected(exceptTeam='',exceptKind='',exceptIndex=-1){const set=new Set();for(const t of ['a','b'])for(const k of ['starters','subs'])desertStormData[t][k].forEach((n,i)=>{if(n&&!(t===exceptTeam&&k===exceptKind&&i===exceptIndex))set.add(n.toLocaleLowerCase())});return set}
 function desertMember(name){return members.find(m=>m.name.toLocaleLowerCase()===String(name).toLocaleLowerCase())}
 function desertSlot(kind,i){
  const current=desertStormData[desertStormTeam][kind][i],used=desertSelected(desertStormTeam,kind,i);
  const opts=members.slice().sort((a,b)=>a.name.localeCompare(b.name)).filter(m=>!used.has(m.name.toLocaleLowerCase())||m.name===current).map(m=>'<option value="'+esc(m.name)+'" '+(m.name===current?'selected':'')+'>'+esc(m.name)+'</option>').join('');
- const m=desertMember(current),thp=m?.power||'—',meta=m?[m.t1&&'T1 '+m.t1,m.type].filter(Boolean).join(' · '):'';
+ const m=desertMember(current),thp=desertStormData[desertStormTeam].thp?.[current]||'—',meta=m?[m.t1&&'T1 '+m.t1,m.type].filter(Boolean).join(' · '):'';
  return '<div class="desert-slot"><span>#'+(i+1)+'</span><div class="desert-slot-member"><select data-ds-kind="'+kind+'" data-ds-index="'+i+'"><option value="">— Empty slot —</option>'+opts+'</select>'+(meta?'<small>'+esc(meta)+'</small>':'')+'</div><div class="desert-slot-thp"><small>THP</small><strong>'+esc(thp)+'</strong></div></div>'
 }
 function renderDesertStorm(){
@@ -299,7 +299,7 @@ async function saveDesertThpObservations(rows){
 async function applyDesertPictureNames(){
  const approved=desertPictureMatches.filter(x=>x.name&&x.thp).slice(0,30),names=[...new Set(approved.map(x=>x.name))],d=desertStormData[desertPictureTarget],status=document.getElementById('dsPictureStatus'),date=document.getElementById('dsPictureEventDate')?.value||upcomingFridayIso(),sync=document.getElementById('dsSyncPictureData');
  if(!approved.length)return;
- d.starters=Array(20).fill('');d.subs=Array(10).fill('');names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20,30).forEach((n,i)=>d.subs[i]=n);
+ d.starters=Array(20).fill('');d.subs=Array(10).fill('');d.thp={};approved.forEach(x=>d.thp[x.name]=x.thp);names.slice(0,20).forEach((n,i)=>d.starters[i]=n);names.slice(20,30).forEach((n,i)=>d.subs[i]=n);
  desertPictureStaged={date,team:desertPictureTarget,rows:approved.map((x,i)=>({event_date:date,team:desertPictureTarget.toUpperCase(),role:i<20?'starter':'substitute',slot_number:i<20?i+1:i-19,member_name:x.name,thp:x.thp,sync_status:'pending'}))};
  desertStormTeam=desertPictureTarget;renderDesertStorm();saveDesertStorm();if(sync)sync.disabled=false;const mainSync=document.getElementById('dsSyncMainBtn');if(mainSync){mainSync.disabled=false;mainSync.textContent='SYNC THP DATA · '+approved.length}if(status)status.textContent='Staged '+approved.length+' reviewed THP values. Make any final THP edits above, then press SYNC to start the automation workflow.'
 }
@@ -323,7 +323,7 @@ const CANYON_STORM_KEY='unbeerable_canyon_storm_v1';let canyonStormTeam='a',cany
 function canyonSlot(kind,i){
  const name=canyonStormData[canyonStormTeam][kind][i]||'',used=new Set([...canyonStormData.a.starters,...canyonStormData.a.subs,...canyonStormData.b.starters,...canyonStormData.b.subs].filter(Boolean));
  const opts=members.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(m=>'<option value="'+esc(m.name)+'" '+(m.name===name?'selected':'')+' '+(used.has(m.name)&&m.name!==name?'disabled':'')+'>'+esc(m.name)+'</option>').join('');
- const m=members.find(x=>x.name===name),thp=m?.power||'—',meta=m?[m.t1&&'T1 '+m.t1,m.type].filter(Boolean).join(' · '):'';
+ const m=members.find(x=>x.name===name),thp=canyonStormData[canyonStormTeam].thp?.[name]||'—',meta=m?[m.t1&&'T1 '+m.t1,m.type].filter(Boolean).join(' · '):'';
  return '<div class="desert-slot"><span>#'+(i+1)+'</span><div class="desert-slot-member"><select data-cs-kind="'+kind+'" data-cs-index="'+i+'"><option value="">— Empty slot —</option>'+opts+'</select>'+(meta?'<small>'+esc(meta)+'</small>':'')+'</div><div class="desert-slot-thp"><small>THP</small><strong>'+esc(thp)+'</strong></div></div>'
 }
 function renderCanyonStorm(){const label=canyonStormTeam==='a'?'Team A':'Team B',d=canyonStormData[canyonStormTeam],se=document.getElementById('csStarters'),su=document.getElementById('csSubs');if(!se||!su)return;document.querySelectorAll('[data-cs-team]').forEach(b=>b.classList.toggle('active',b.dataset.csTeam===canyonStormTeam));se.innerHTML=d.starters.map((_,i)=>canyonSlot('starters',i)).join('');su.innerHTML=d.subs.map((_,i)=>canyonSlot('subs',i)).join('');const sc=d.starters.filter(Boolean).length,uc=d.subs.filter(Boolean).length;document.getElementById('csPictureBtn').textContent='Import '+label+' from picture';document.getElementById('csTeamLabel').textContent=label;document.getElementById('csTeamFilled').textContent=(sc+uc)+'/30';document.getElementById('csStarterCount').textContent=sc+'/20';document.getElementById('csSubCount').textContent=uc+'/10';document.getElementById('csStartersTitle').textContent=label+' · 20 Starters';document.getElementById('csSubsTitle').textContent=label+' · 10 Subs';document.querySelectorAll('[data-cs-kind]').forEach(sel=>sel.onchange=()=>{canyonStormData[canyonStormTeam][sel.dataset.csKind][Number(sel.dataset.csIndex)]=sel.value;renderCanyonStorm();saveCanyonStorm()})}
