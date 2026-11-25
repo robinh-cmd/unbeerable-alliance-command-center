@@ -1,14 +1,14 @@
 // Offline cache for the site's own files only. Database (Supabase) and CDN
 // requests always go straight to the network and are never stored.
-const CACHE = 'unbeerable-v65-tidy';
+const CACHE = 'unbeerable-v66-url-fix';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './favicon.svg', './manifest.webmanifest'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', e => {
