@@ -26,10 +26,10 @@
   <div class="panel-head"><div><span class="eyebrow">ROSTER SYNC</span><h3>Roster sync status</h3></div><span class="pill roster-sync-pill" id="rosterSyncPill">Checking…</span></div>
   <div class="roster-sync-grid">
     <div><span>Status</span><strong id="rosterSyncState">Checking…</strong></div>
-    <div><span>Members synced</span><strong id="rosterSyncRows">—</strong></div>
+    <div><span>Active members</span><strong id="rosterSyncRows">—</strong></div>
     <div><span>Last successful sync</span><strong id="rosterSyncTime">—</strong></div>
   </div>
-  <p class="muted small" id="rosterSyncSource">Alliance members Data / alliance_members.xlsm</p>
+  <p class="muted small" id="rosterSyncSource">Game member list (lw_sync)</p>
   <p class="roster-sync-error" id="rosterSyncError" hidden></p>
 </article>
 <div class="toolbar member-toolbar"><input id="memberSearch" placeholder="Search member names..."><select id="memberSort" aria-label="Sort members"><option value="thp">THP — highest to lowest</option><option value="kills">Kills — highest to lowest</option><option value="t1">T1 — highest to lowest</option><option value="type">Troop type — Tank → Air → Missile</option></select><button class="secondary" id="clearMemberSearch">Clear</button></div><article class="panel table-panel"><div class="panel-head"><div><span class="eyebrow">CURRENT ROSTER</span><h3>Member details</h3></div><span class="pill" id="visibleMemberCount">0 shown</span></div><table id="memberTable"><thead><tr><th>Member Name</th><th>THP</th><th>T1</th><th>Type</th><th>Kills</th><th>Actions</th></tr></thead><tbody></tbody></table><div id="memberEmptyState" class="empty-state" hidden>No members match your search.</div></article>
