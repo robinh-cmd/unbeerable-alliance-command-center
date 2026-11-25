@@ -1,6 +1,6 @@
 // Offline cache for the site's own files only. Database (Supabase) and CDN
 // requests always go straight to the network and are never stored.
-const CACHE = 'unbeerable-v66-url-fix';
+const CACHE = 'unbeerable-v67-ds-mail';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './favicon.svg', './manifest.webmanifest'];
 
 self.addEventListener('install', e => {
