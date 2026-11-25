@@ -365,7 +365,7 @@ let dsSkipHistory=[],dsSkipDraft=[],dsSkipMode=false;
 function dsPreviousSkipped(){return new Set((dsSkipHistory[0]?.skipped_members||[]).map(n=>String(n).toLocaleLowerCase()))}
 function renderDsSkip(){
  const view=document.getElementById('dsSkippedView');if(!view)return;view.hidden=!dsSkipMode;
- const summary=document.querySelector('#desert-storm>.desert-team-summary'),starters=document.querySelector('#dsStarters')?.closest('article'),subs=document.querySelector('#dsSubs')?.closest('article');
+ const summary=document.querySelector('#desert-storm .desert-team-summary'),starters=document.querySelector('#dsStarters')?.closest('article'),subs=document.querySelector('#dsSubs')?.closest('article');
  [summary,starters,subs].forEach(e=>{if(e)e.hidden=dsSkipMode});const pic=document.getElementById('dsPictureBtn');if(pic)pic.hidden=dsSkipMode;if(!dsSkipMode)return;
  const blocked=dsPreviousSkipped(),chosen=new Set(dsSkipDraft.map(n=>n.toLocaleLowerCase())),eligible=members.filter(m=>!blocked.has(m.name.toLocaleLowerCase())&&!chosen.has(m.name.toLocaleLowerCase())),sel=document.getElementById('dsSkipMember');
  sel.innerHTML='<option value="">Select eligible member</option>'+eligible.map(m=>'<option value="'+esc(m.name)+'">'+esc(m.name)+'</option>').join('');
@@ -394,3 +394,72 @@ function renderTransfer(){
  body.querySelectorAll('[data-remove-transfer]').forEach(b=>b.onclick=()=>{transferApplicants.splice(Number(b.dataset.removeTransfer),1);saveTransfer();renderTransfer()});
 }
 document.getElementById('transferAddBtn')?.addEventListener('click',()=>{transferApplicants.push({server:'',name:'',seat:'',power:'',alliance:'',group:'',comments:''});saveTransfer();renderTransfer()});renderTransfer();
+
+/* ---------- Desert Storm: battle mail (squads balanced by THP) ---------- */
+const DS_MAIL_SQUADS=[
+ {title:'🔴 SQUAD 1 – SUPPORT & NUCLEAR SILO',orders:['Support teammates against stronger opponents.','Capture the Nuclear Silo when it opens.','Reinforce contested buildings.','Prioritize urgent backup requests.']},
+ {title:'🏥 SQUAD 2 – HOSPITALS',hospitals:true,orders:['Secure and defend assigned hospitals.','Capture Hospitals 3 and 4 when available.','Request reinforcements immediately if attacked.']},
+ {title:'🔬 SQUAD 3.1 – SCIENCE HUB',orders:['Secure the Science Hub early.','Maintain control throughout the battle.','Call for support when attacked.','Never leave the building undefended.']},
+ {title:'🛢️ SQUAD 3.2 – REFINERIES',orders:['Capture Refineries 1 and 2.','Always maintain control of at least ONE refinery.','Coordinate defense and reinforcements.']},
+ {title:'🏭 SQUAD 3.3 – BUFFS & SUPPORT',orders:['START: Capture Info Center.','NEXT: Support teammates at contested buildings.','LATER: Secure Arsenal and Mercenary Factory buffs.','Prevent enemies from holding valuable buffs.']}
+];
+const DS_MAIL_SUB_ORDERS=['Check alliance chat before teleporting.','Replace unavailable starters when requested.','Reinforce squads needing backup.','Help defend or capture contested buildings.','Capture empty buildings when support is not needed.'];
+let dsMailMode=false,dsMailTeam='a',dsMailEdited=false;
+function dsPlayerThp(team,name){const own=parseTHP(desertStormData[team]?.thp?.[name]);if(own)return own;return parseTHP(desertMember(name)?.power)}
+// Split players into squads of (almost) equal size with total THP as even as possible.
+function dsBalanceSquads(players,count){
+ const n=players.length,cap=Array.from({length:count},(_,i)=>Math.floor(n/count)+(i<n%count?1:0)),sq=cap.map(()=>[]),tot=Array(count).fill(0);
+ players.slice().sort((a,b)=>b.thp-a.thp||a.name.localeCompare(b.name)).forEach(p=>{let best=-1;for(let i=0;i<count;i++)if(sq[i].length<cap[i]&&(best<0||tot[i]<tot[best]))best=i;sq[best].push(p);tot[best]+=p.thp});
+ for(let pass=0,improved=true;improved&&pass<100;pass++){improved=false;for(let a=0;a<count;a++)for(let b=a+1;b<count;b++)for(let i=0;i<sq[a].length;i++)for(let j=0;j<sq[b].length;j++){const d=sq[a][i].thp-sq[b][j].thp;if(!d)continue;if(Math.abs(tot[a]-tot[b]-2*d)<Math.abs(tot[a]-tot[b])-1){const t=sq[a][i];sq[a][i]=sq[b][j];sq[b][j]=t;tot[a]-=d;tot[b]+=d;improved=true}}}
+ return sq.map((s,i)=>({players:s.sort((a,b)=>b.thp-a.thp||a.name.localeCompare(b.name)),total:tot[i]}))
+}
+function dsMailPlan(team){
+ const d=desertStormData[team],names=d.starters.filter(Boolean),subs=d.subs.filter(Boolean);
+ const known=names.map(n=>dsPlayerThp(team,n)).filter(Boolean).sort((a,b)=>a-b),median=known.length?known[Math.floor(known.length/2)]:0;
+ const missing=[];const players=names.map(n=>{let thp=dsPlayerThp(team,n);if(!thp){missing.push(n);thp=median}return{name:n,thp}});
+ const squads=dsBalanceSquads(players,DS_MAIL_SQUADS.length).map((s,i)=>({...DS_MAIL_SQUADS[i],...s}));
+ const h=squads.find(s=>s.hospitals);if(h){const p=h.players;h.pairs=[[p[0],p[3]].filter(Boolean),[p[1],p[2]].filter(Boolean)]}
+ return{team,label:team==='a'?'TEAM A':'TEAM B',squads,subs,missing,starters:names.length}
+}
+function dsMailText(plan){
+ const L=[],dot=a=>a.map(p=>p.name||p).join(' • ');
+ L.push('⚔️ DESERT STORM – '+plan.label,'','🔥 WEEKLY BATTLE PLAN','');
+ for(const s of plan.squads){L.push(s.title,'');if(s.hospitals&&s.pairs){s.pairs.forEach((pair,i)=>{if(pair.length)L.push('Hospital '+(i+1)+': '+dot(pair),'')})}else if(s.players.length)L.push(dot(s.players),'');s.orders.forEach(o=>L.push('* '+o));L.push('')}
+ L.push('⸻','','🟡 SUBSTITUTES ('+plan.subs.length+')','',plan.subs.length?plan.subs.join(' • '):'—','','Substitute instructions:','');DS_MAIL_SUB_ORDERS.forEach((o,i)=>L.push((i+1)+'. '+o));
+ L.push('','⸻','','📢 IMPORTANT BATTLE RULES','','COMMUNICATE – Request backup early.','','FOCUS ON POINTS – Buildings win battles, not unnecessary fights.','','STAY FLEXIBLE – Help other squads when needed.','','FINAL 5 MINUTES – If many points are stacked, EVERYONE teleport in and fight for control!','','🔥 '+plan.label+' – LET’S WIN THIS DS! ⚔️');
+ return L.join('\n')
+}
+function renderDsMail(regenerate=false){
+ const view=document.getElementById('dsMailView');if(!view||!dsMailMode)return;
+ document.querySelectorAll('[data-ds-mail-team]').forEach(b=>b.classList.toggle('active',b.dataset.dsMailTeam===dsMailTeam));
+ const plan=dsMailPlan(dsMailTeam),box=document.getElementById('dsMailSquads'),note=document.getElementById('dsMailNote'),text=document.getElementById('dsMailText');
+ if(!plan.starters){box.innerHTML='<div class="train-empty">Add starters to '+(dsMailTeam==='a'?'Team A':'Team B')+' first. The mail is built from that team’s starters and substitutes.</div>';note.textContent='';text.value='';dsMailEdited=false;return}
+ const totals=plan.squads.map(s=>s.total).filter((t,i)=>plan.squads[i].players.length),spread=totals.length?Math.max(...totals)-Math.min(...totals):0;
+ box.innerHTML=plan.squads.map(s=>'<div class="ds-mail-squad"><div class="ds-mail-squad-head"><strong>'+esc(s.title)+'</strong><span>'+compactTHP(s.total)+'</span></div>'+(s.hospitals&&s.pairs?s.pairs.map((pair,i)=>'<small>Hospital '+(i+1)+'</small>'+pair.map(p=>'<div><span>'+esc(p.name)+'</span><em>'+compactTHP(p.thp)+'</em></div>').join('')).join(''):s.players.map(p=>'<div><span>'+esc(p.name)+'</span><em>'+compactTHP(p.thp)+'</em></div>').join(''))+'</div>').join('');
+ note.textContent=plan.starters+' starters in '+plan.squads.length+' squads · difference between strongest and weakest squad: '+compactTHP(spread)+(plan.missing.length?' · no THP for '+plan.missing.join(', ')+' (counted as an average player)':'')+' · '+plan.subs.length+' substitutes.';
+ if(regenerate||!dsMailEdited){text.value=dsMailText(plan);dsMailEdited=false}
+}
+function setDsMailMode(on){
+ dsMailMode=on;const view=document.getElementById('dsMailView'),tab=document.getElementById('dsMailTab');if(!view)return;view.hidden=!on;tab?.classList.toggle('active',on);
+ if(on){dsSkipMode=false;document.getElementById('dsSkippedTab')?.classList.remove('active');document.querySelectorAll('[data-ds-team]').forEach(b=>b.classList.remove('active'));
+  const summary=document.querySelector('#desert-storm .desert-team-summary'),starters=document.querySelector('#dsStarters')?.closest('article'),subs=document.querySelector('#dsSubs')?.closest('article');
+  [summary,starters,subs,document.getElementById('dsSkippedView'),document.getElementById('dsPictureBtn')].forEach(e=>{if(e)e.hidden=true});renderDsMail()}
+ else{const sm=document.querySelector('#desert-storm .desert-team-summary');if(sm)sm.hidden=false;renderDsSkip()}
+}
+(function setupDsMail(){
+ const tabs=document.querySelector('#desert-storm .desert-team-tabs'),skip=document.getElementById('dsSkippedView');if(!tabs||!skip||document.getElementById('dsMailTab'))return;
+ const tab=document.createElement('button');tab.className='train-tab';tab.id='dsMailTab';tab.textContent='Battle Mail';tabs.appendChild(tab);
+ const v=document.createElement('div');v.id='dsMailView';v.hidden=true;
+ v.innerHTML='<article class="panel"><div class="panel-head"><div><span class="eyebrow">BATTLE PLAN</span><h3>Desert Storm mail</h3></div><div class="desert-team-tabs"><button class="train-tab active" data-ds-mail-team="a">Team A</button><button class="train-tab" data-ds-mail-team="b">Team B</button></div></div><p class="muted ds-mail-intro">Starters are split into the 5 squads with about the same total THP (Hospitals as two even pairs). Substitutes are listed separately. Change the roster on the Team A / Team B tabs, then come back here.</p><div id="dsMailSquads" class="ds-mail-squads"></div><p class="muted small" id="dsMailNote"></p></article><article class="panel"><div class="panel-head"><div><span class="eyebrow">EMAIL</span><h3>Ready to send</h3></div><div class="member-actions"><button class="secondary" id="dsMailRegenBtn">Rebuild mail</button><button class="primary" id="dsMailCopyBtn">Copy email</button></div></div><textarea id="dsMailText" class="train-email-text" spellcheck="false"></textarea><p class="muted small" id="dsMailCopyStatus"></p></article>';
+ skip.after(v);
+ tab.addEventListener('click',()=>{dsMailTeam=desertStormTeam;dsMailEdited=false;setDsMailMode(true)});
+ document.getElementById('dsSkippedTab')?.addEventListener('click',()=>setDsMailMode(false));
+ document.querySelectorAll('[data-ds-team]').forEach(b=>b.addEventListener('click',()=>setDsMailMode(false)));
+ v.querySelectorAll('[data-ds-mail-team]').forEach(b=>b.addEventListener('click',()=>{dsMailTeam=b.dataset.dsMailTeam;renderDsMail(true)}));
+ document.getElementById('dsMailText').addEventListener('input',()=>{dsMailEdited=true});
+ document.getElementById('dsMailRegenBtn').addEventListener('click',()=>renderDsMail(true));
+ document.getElementById('dsMailCopyBtn').addEventListener('click',async()=>{const box=document.getElementById('dsMailText'),st=document.getElementById('dsMailCopyStatus');if(!box.value)return;try{await navigator.clipboard.writeText(box.value)}catch{box.focus();box.select();document.execCommand('copy')}st.textContent='Copied to clipboard.';setTimeout(()=>{st.textContent=''},2500)});
+ // keep the mail view in place when the roster re-renders (auto-refresh)
+ const origSkip=renderDsSkip;renderDsSkip=function(){origSkip.apply(this,arguments);if(dsMailMode)setDsMailMode(true)};
+ const origDs=renderDesertStorm;renderDesertStorm=function(){origDs.apply(this,arguments);if(dsMailMode)setDsMailMode(true)};
+})();
