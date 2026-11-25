@@ -133,3 +133,9 @@
 .ds-mail-squads{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:6px 0 12px}.ds-mail-squad{border:1px solid var(--border);background:#0e121a;border-radius:10px;padding:12px}.ds-mail-squad-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:8px;font-size:11px}.ds-mail-squad-head span{color:var(--accent2);font-weight:800;white-space:nowrap}.ds-mail-squad>div:not(.ds-mail-squad-head){display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-top:1px solid #1d2230}.ds-mail-squad em{font-style:normal;color:var(--muted)}.ds-mail-squad small{display:block;color:var(--muted);font-size:9px;letter-spacing:.08em;margin-top:6px;text-transform:uppercase}
 #desert-storm [hidden]{display:none!important}
 .ds-mail-intro{font-size:12px;margin:0 0 12px}
+
+/* lw_sync: active / inactive members */
+.member-status{display:block;margin-top:2px;font-size:.75rem;opacity:.75;font-weight:500}
+.member-status.off{color:#d9822b;opacity:1}
+tr.member-inactive td{opacity:.55}
+tr.member-inactive td.row-actions{opacity:1}
